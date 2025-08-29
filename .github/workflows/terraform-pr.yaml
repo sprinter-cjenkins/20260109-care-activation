@@ -1,0 +1,149 @@
+name: Terraform PR Review
+
+on:
+  pull_request:
+    branches:
+      - main
+
+    paths:
+      - .github/workflows/terraform-pr.yaml
+      - infra/terraform/**/*.tf
+      - infra/terraform/**/*.tfvars
+
+concurrency:
+  group: pr-tf-plan-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  security-validation:
+    name: Security & Validation
+    # Filter on PR source branch name (head_ref)
+    if: |
+      startsWith(github.head_ref, 'terraform-') ||
+      startsWith(github.head_ref, 'feature/terraform-') ||
+      startsWith(github.head_ref, 'terraform/')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform/environment
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        id: check
+        run: tflint --recursive
+
+      - name: Run Trivy (Terraform security scan)
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          scan-type: config
+          scanners: vuln,config,secret
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          hide-progress: true
+
+      # Delete old plan comment before borchero posts
+      - name: Delete Old Terraform Plan Comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Fetching comments for $REPO PR #$PR_NUMBER"
+          comments=$(gh api repos/$REPO/issues/$PR_NUMBER/comments \
+            --jq '.[] 
+              | select(.user.login=="github-actions[bot]") 
+              | select(.body | contains("📝 Terraform Plan")) 
+              | .id')
+
+          for cid in $comments; do
+            echo "Deleting comment $cid"
+            gh api repos/$REPO/issues/comments/$cid -X DELETE
+          done
+
+  terraform:
+    name: Terraform Plan & Comment
+    needs: security-validation
+    # Filter on PR source branch name (head_ref)
+    if: |
+      startsWith(github.head_ref, 'terraform-') ||
+      startsWith(github.head_ref, 'feature/terraform-') ||
+      startsWith(github.head_ref, 'terraform/')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        base-environments: ["prod"]
+
+    env:
+      TF_IN_AUTOMATION: 1
+      TF_VERSION: 1.11.4
+      WORKING-DIRECTORY: infra/terraform/environment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: >-
+            ${{
+              matrix.base-environments == 'prod' &&
+              'arn:aws:iam::XXXXXX:role/sprinterhealth-care-activation-prod-terraform-role' ||
+              'arn:aws:iam::XXXXXX:role/sprinterhealth-care-activation-dev-terraform-role'
+            }}
+          role-session-name: ${{ github.repository_id }}-${{ github.actor }}
+          aws-region: us-west-2
+
+      - name: Create AWS CLI profile
+        run: |
+          mkdir -p ~/.aws
+          cat <<EOF > ~/.aws/credentials
+          [${{ matrix.base-environments }}]
+          aws_access_key_id=${AWS_ACCESS_KEY_ID}
+          aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
+          aws_session_token=${AWS_SESSION_TOKEN}
+          EOF
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
+        run: |
+          terraform init -input=false
+          terraform workspace select ${{ matrix.base-environments }}
+
+      - name: Terraform Validate
+        id: validate
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
+        run: terraform validate
+
+      - name: Terraform Format
+        id: fmt
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
+        run: terraform fmt --recursive -no-color
+
+      - name: terraform plan
+        id: plan
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
+        run: terraform plan -refresh=false -no-color --var-file=${{ matrix.base-environments }}.tfvars -out .planfile > /dev/null
+
+      - name: Post PR comment
+        uses: borchero/terraform-plan-comment@v2.4.1
+        with:
+          token: ${{ github.token }}
+          planfile: .planfile
+          working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
