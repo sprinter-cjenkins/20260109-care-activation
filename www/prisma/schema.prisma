@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model Patient {
+  id    String     @id @default(uuid())
+  email String
+  phone String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  givenName String
+  familyName String
+  birthDate DateTime
+}
