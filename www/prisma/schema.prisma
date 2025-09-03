@@ -8,6 +8,23 @@ datasource db {
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
+enum PartnerOrganization {
+  ELEVANCEHEALTH
+  HUMANA
+}
+
+enum CareTaskType {
+  MAMMOGRAM
+  DEXA_SCAN
+}
+
+enum CareTaskStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
 model Patient {
   id    String     @id @default(uuid())
   email String
@@ -17,4 +34,16 @@ model Patient {
   givenName String
   familyName String
   birthDate DateTime
+  timezone String
+  tasks     CareTask[]
+}
+
+model CareTask {
+  id          String          @id @default(uuid())
+  type        CareTaskType
+  status      CareTaskStatus  @default(PENDING)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  patientId   String
+  patient     Patient         @relation(fields: [patientId], references: [id])
 }
