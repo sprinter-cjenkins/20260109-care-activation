@@ -1,14 +1,14 @@
-variable "aws_region" {
-  description = "AWS region to deploy resources"
-  type        = string
-  default     = "us-west-2"
-}
-
-variable "aws_profile" {
-  description = "AWS CLI profile to use"
-  type        = string
-  default     = null
-}
+# variable "aws_region" {
+#   description = "AWS region to deploy resources"
+#   type        = string
+#   default     = "us-west-2"
+# }
+#
+# variable "aws_profile" {
+#   description = "AWS CLI profile to use"
+#   type        = string
+#   default     = null
+# }
 
 variable "resource_name" {
   description = "Name of the resources"
