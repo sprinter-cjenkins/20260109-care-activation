@@ -98,8 +98,8 @@ jobs:
           role-to-assume: >-
             ${{
               matrix.base-environments == 'prod' &&
-              'arn:aws:iam::XXXXXX:role/sprinterhealth-care-activation-prod-terraform-role' ||
-              'arn:aws:iam::XXXXXX:role/sprinterhealth-care-activation-dev-terraform-role'
+              'arn:aws:iam::XXXXXX:role/care-activation-prod-terraform-ro-role' ||
+              'arn:aws:iam::XXXXXX:role/care-activation-dev-terraform-ro-role'
             }}
           role-session-name: ${{ github.repository_id }}-${{ github.actor }}
           aws-region: us-west-2

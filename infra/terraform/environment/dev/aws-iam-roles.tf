@@ -8,14 +8,14 @@ data "tls_certificate" "github_oidc" {
 
 # Create OIDC Identity Provider
 resource "aws_iam_openid_connect_provider" "github" {
-  url            = data.tls_certificate.github_oidc.url
-  client_id_list = ["sts.amazonaws.com"]
+  url             = data.tls_certificate.github_oidc.url
+  client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.github_oidc.certificates[0].sha1_fingerprint]
 }
 
 # IAM Role
-resource "aws_iam_role" "ca_terraform_role" {
-  name                 = "${var.resource_name}-${var.environment}-terraform-role"
+resource "aws_iam_role" "ca_terraform_ro_role" {
+  name                 = "${var.resource_name}-${var.environment}-terraform-ro-role"
   path                 = "/"
   max_session_duration = 3600
 
@@ -75,12 +75,12 @@ resource "aws_iam_policy" "terraforms3backend_inline_policy" {
 
 # Attach managed policy
 resource "aws_iam_role_policy_attachment" "readonly_access_attachment" {
-  role       = aws_iam_role.ca_terraform_role.name
+  role       = aws_iam_role.ca_terraform_ro_role.name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
 
 # Attach inline policy
 resource "aws_iam_role_policy_attachment" "terraforms3backend_inline_policy_attachment" {
-  role       = aws_iam_role.ca_terraform_role.name
+  role       = aws_iam_role.ca_terraform_ro_role.name
   policy_arn = aws_iam_policy.terraforms3backend_inline_policy.arn
 }

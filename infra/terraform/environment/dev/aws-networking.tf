@@ -40,7 +40,7 @@ module "networking" {
   }
 
   enable_aws_vpc_endpoint = false # Set to true to deploy AWS VPC Endpoints; false skips deployment
-  aws_vpc_endpoint = {}
+  aws_vpc_endpoint        = {}
 }
 
 resource "aws_iam_role" "vpc_flow_logs_role" {
