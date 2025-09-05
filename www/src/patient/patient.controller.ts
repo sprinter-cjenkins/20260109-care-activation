@@ -1,33 +1,42 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Patient } from '@prisma/client';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  BadRequestException,
+} from '@nestjs/common';
+import { PatientService } from './patient.service';
+import { Patient, Prisma } from '@prisma/client';
 
 @Controller('patients')
 export class PatientController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly patientService: PatientService) {}
 
   @Get()
   findAll(): Promise<Patient[]> {
-    return this.prisma.patient.findMany();
+    return this.patientService.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Patient | null> {
-    return this.prisma.patient.findUnique({ where: { id } });
+    return this.patientService.findOne(id);
   }
 
-  @Post()
-  create(@Body() data: any): Promise<Patient> {
-    return this.prisma.patient.create({ data });
+  @Post('create')
+  create(@Body() data: Prisma.PatientCreateInput): Promise<Patient> {
+    return this.patientService.createOrUpdate(data);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() data: any): Promise<Patient> {
-    return this.prisma.patient.update({ where: { id }, data });
+  update(@Param('id') id: string, @Body() data: Prisma.PatientUpdateInput): Promise<Patient> {
+    return this.patientService.update(id, data);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string): Promise<Patient> {
-    return this.prisma.patient.delete({ where: { id } });
+    return this.patientService.remove(id);
   }
 }

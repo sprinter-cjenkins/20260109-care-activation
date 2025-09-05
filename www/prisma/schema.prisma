@@ -38,7 +38,8 @@ enum CareTaskEventResult {
 model Patient {
   birthDate           DateTime
   createdAt           DateTime @default(now())
-  email               String
+  email               String?
+  externalId          String
   familyName          String
   givenName           String
   id                  String   @id @default(uuid())
