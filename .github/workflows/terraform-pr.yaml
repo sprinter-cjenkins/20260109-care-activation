@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        base-environments: ["dev", "prod"]
+        base-environments: ["dev"]
 
     env:
       TF_IN_AUTOMATION: 1
@@ -98,8 +98,8 @@ jobs:
           role-to-assume: >-
             ${{
               matrix.base-environments == 'prod' &&
-              'arn:aws:iam::XXXXXX:role/care-activation-prod-terraform-ro-role' ||
-              'arn:aws:iam::XXXXXX:role/care-activation-dev-terraform-ro-role'
+              'arn:aws:iam::417107812602:role/care-activation-prod-terraform-ro-role' ||
+              'arn:aws:iam::417107812602:role/care-activation-dev-terraform-ro-role'
             }}
           role-session-name: ${{ github.repository_id }}-${{ github.actor }}
           aws-region: us-west-2
