@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        base-environments: ["dev, "prod"]
+        base-environments: ["dev", "prod"]
 
     env:
       TF_IN_AUTOMATION: 1
