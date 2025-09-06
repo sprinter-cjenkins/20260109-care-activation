@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket       = "care-activation-dev-terraform"
-    key          = "dev/terraform.tfstate"
+    key          = "terraform.tfstate"
     region       = "us-west-2"
     encrypt      = true
     use_lockfile = true
@@ -17,6 +17,10 @@ terraform {
     random = {
       source  = "hashicorp/random"
       version = "3.7.2"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "4.1.0"
     }
   }
 }

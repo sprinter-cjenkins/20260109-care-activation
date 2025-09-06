@@ -1,25 +1,25 @@
-variable "aws_region" {
-  description = "AWS region to deploy resources"
-  type        = string
-  default     = "us-west-2"
-}
-
-variable "aws_profile" {
-  description = "AWS CLI profile to use"
-  type        = string
-  default     = null
-}
+# variable "aws_region" {
+#   description = "AWS region to deploy resources"
+#   type        = string
+#   default     = "us-west-2"
+# }
+#
+# variable "aws_profile" {
+#   description = "AWS CLI profile to use"
+#   type        = string
+#   default     = null
+# }
+#
+# variable "environment" {
+#   description = "Deployment environment"
+#   type        = string
+#   default     = "dev"
+# }
 
 variable "resource_name" {
   description = "Name of the resources"
   type        = string
   default     = "care-activation"
-}
-
-variable "environment" {
-  description = "Deployment environment"
-  type        = string
-  default     = "dev"
 }
 
 variable "vpc_cidr" {

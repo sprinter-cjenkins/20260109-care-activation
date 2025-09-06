@@ -19,6 +19,10 @@ The Terraform configuration in this project follows a **modular approach** to se
 
 By using **Terraform workspaces**, the same configuration can manage resources in multiple environments (`dev`, `prod`), with isolated states and variables.
 
+Example
+```shell
+terraform workspace select dev
+```
 ---
 
 ## Directory Structure

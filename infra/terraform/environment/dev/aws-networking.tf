@@ -10,17 +10,17 @@ module "networking" {
     "public-subnet-1" = {
       cidr_block              = cidrsubnet(var.vpc_cidr, 8, 0)
       availability_zone       = data.aws_availability_zones.available.names[0]
-      map_public_ip_on_launch = true
+      map_public_ip_on_launch = false
     }
     "public-subnet-2" = {
       cidr_block              = cidrsubnet(var.vpc_cidr, 8, 1)
       availability_zone       = data.aws_availability_zones.available.names[1]
-      map_public_ip_on_launch = true
+      map_public_ip_on_launch = false
     }
     "public-subnet-3" = {
       cidr_block              = cidrsubnet(var.vpc_cidr, 8, 2)
       availability_zone       = data.aws_availability_zones.available.names[2]
-      map_public_ip_on_launch = true
+      map_public_ip_on_launch = false
     }
     "private-subnet-1" = {
       cidr_block              = cidrsubnet(var.vpc_cidr, 8, 100)
@@ -40,11 +40,11 @@ module "networking" {
   }
 
   enable_aws_vpc_endpoint = false # Set to true to deploy AWS VPC Endpoints; false skips deployment
-  aws_vpc_endpoint = {}
+  aws_vpc_endpoint        = {}
 }
 
 resource "aws_iam_role" "vpc_flow_logs_role" {
-  name = "${var.resource_name}-${var.environment}-flowlogs-role"
+  name = "${var.resource_name}-${terraform.workspace}-flowlogs-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -60,13 +60,13 @@ resource "aws_iam_role" "vpc_flow_logs_role" {
   })
 
   tags = {
-    Name        = "${var.resource_name}-${var.environment}-flowlogs-role"
-    Environment = var.environment
+    Name        = "${var.resource_name}-${terraform.workspace}-flowlogs-role"
+    Environment = terraform.workspace
   }
 }
 
 resource "aws_iam_role_policy" "vpc_flow_logs_policy" {
-  name = "${var.resource_name}-${var.environment}-flowlogs-policy"
+  name = "${var.resource_name}-${terraform.workspace}-flowlogs-policy"
   role = aws_iam_role.vpc_flow_logs_role.id
 
   policy = jsonencode({
