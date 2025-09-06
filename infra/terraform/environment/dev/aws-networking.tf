@@ -44,7 +44,7 @@ module "networking" {
 }
 
 resource "aws_iam_role" "vpc_flow_logs_role" {
-  name = "${var.resource_name}-${var.environment}-flowlogs-role"
+  name = "${var.resource_name}-${terraform.workspace}-flowlogs-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -60,13 +60,13 @@ resource "aws_iam_role" "vpc_flow_logs_role" {
   })
 
   tags = {
-    Name        = "${var.resource_name}-${var.environment}-flowlogs-role"
-    Environment = var.environment
+    Name        = "${var.resource_name}-${terraform.workspace}-flowlogs-role"
+    Environment = terraform.workspace
   }
 }
 
 resource "aws_iam_role_policy" "vpc_flow_logs_policy" {
-  name = "${var.resource_name}-${var.environment}-flowlogs-policy"
+  name = "${var.resource_name}-${terraform.workspace}-flowlogs-policy"
   role = aws_iam_role.vpc_flow_logs_role.id
 
   policy = jsonencode({

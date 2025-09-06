@@ -15,7 +15,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 # IAM Role
 resource "aws_iam_role" "ca_terraform_ro_role" {
-  name                 = "${var.resource_name}-${var.environment}-terraform-ro-role"
+  name                 = "${var.resource_name}-${terraform.workspace}-terraform-ro-role"
   path                 = "/"
   max_session_duration = 3600
 
@@ -46,7 +46,7 @@ resource "aws_iam_role" "ca_terraform_ro_role" {
 
 # Inline S3 policy
 resource "aws_iam_policy" "terraforms3backend_inline_policy" {
-  name = "terraforms3backend-${var.resource_name}-${var.environment}"
+  name = "terraforms3backend-${var.resource_name}-${terraform.workspace}"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -65,8 +65,8 @@ resource "aws_iam_policy" "terraforms3backend_inline_policy" {
           "s3:GetBucketObjectLockConfiguration"
         ]
         Resource = [
-          "arn:aws:s3:::${var.resource_name}-${var.environment}-terraform",
-          "arn:aws:s3:::${var.resource_name}-${var.environment}-terraform/*"
+          "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform",
+          "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform/*"
         ]
       }
     ]
