@@ -9,17 +9,17 @@
 #   type        = string
 #   default     = null
 # }
+#
+# variable "environment" {
+#   description = "Deployment environment"
+#   type        = string
+#   default     = "dev"
+# }
 
 variable "resource_name" {
   description = "Name of the resources"
   type        = string
   default     = "care-activation"
-}
-
-variable "environment" {
-  description = "Deployment environment"
-  type        = string
-  default     = "dev"
 }
 
 variable "vpc_cidr" {
