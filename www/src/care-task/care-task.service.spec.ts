@@ -6,7 +6,6 @@ import { CareTaskStatus, CareTaskType, PartnerOrganization } from '@prisma/clien
 
 describe('CareTaskService', () => {
   let service: CareTaskService;
-  let prismaService: PrismaService;
 
   const mockPrismaService = {
     careTask: {
@@ -33,7 +32,6 @@ describe('CareTaskService', () => {
     }).compile();
 
     service = module.get<CareTaskService>(CareTaskService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

@@ -26,8 +26,10 @@ describe('App E2E (Patients)', () => {
   });
 
   it('/patients (GET) should resolve', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const response = await request(app.getHttpServer()).get('/patients').expect(200);
 
-    expect(response.body.length).toBe(0);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body).toHaveLength(0);
   });
 });
