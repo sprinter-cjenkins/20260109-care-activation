@@ -5,7 +5,6 @@ import { PartnerOrganization } from '@prisma/client';
 
 describe('PatientService - createOrUpdate', () => {
   let service: PatientService;
-  let prismaService: PrismaService;
 
   const mockPrismaService = {
     patient: {
@@ -27,7 +26,6 @@ describe('PatientService - createOrUpdate', () => {
     }).compile();
 
     service = module.get<PatientService>(PatientService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

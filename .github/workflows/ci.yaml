@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: "mysql://dummy:dummy@localhost:3306/dummy"
+  SHADOW_DATABASE_URL: "mysql://dummy:dummy@localhost:3306/dummy_shadow"
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: www
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: www/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Run e2e tests
+        run: npm run test:e2e
+
+  check-generated-files:
+    name: Check Generated Files
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: www
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: www/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Validate Prisma schema (without database)
+        run: |
+          # Set dummy env vars for validation
+          npx prisma validate
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ Generated files are missing or outdated!"
+            echo "The following files have uncommitted changes:"
+            git status --porcelain
+            echo ""
+            echo "Please run 'npx prisma generate' and commit the changes."
+            exit 1
+          else
+            echo "✅ All generated files are up to date"
+          fi

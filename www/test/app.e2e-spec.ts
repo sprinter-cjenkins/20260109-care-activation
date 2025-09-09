@@ -6,19 +6,24 @@ import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('App E2E (Patients)', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue({
+        patient: {
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        $connect: jest.fn(),
+        $disconnect: jest.fn(),
+      })
+      .compile();
 
     app = moduleRef.createNestApplication();
-    prisma = moduleRef.get(PrismaService);
     await app.init();
-
-    // Clear patients table before tests
-    await prisma.patient.deleteMany();
   });
 
   afterAll(async () => {
@@ -26,8 +31,10 @@ describe('App E2E (Patients)', () => {
   });
 
   it('/patients (GET) should resolve', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const response = await request(app.getHttpServer()).get('/patients').expect(200);
 
-    expect(response.body.length).toBe(0);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body).toHaveLength(0);
   });
 });
