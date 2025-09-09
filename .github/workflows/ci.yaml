@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DATABASE_URL: "mysql://dummy:dummy@localhost:3306/dummy"
+  SHADOW_DATABASE_URL: "mysql://dummy:dummy@localhost:3306/dummy_shadow"
+
 jobs:
   test:
     name: Run Tests
@@ -68,8 +72,6 @@ jobs:
       - name: Validate Prisma schema (without database)
         run: |
           # Set dummy env vars for validation
-          export DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
-          export SHADOW_DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy_shadow"
           npx prisma validate
 
       - name: Check for uncommitted changes
