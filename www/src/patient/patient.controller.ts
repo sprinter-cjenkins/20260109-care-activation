@@ -25,7 +25,7 @@ export class PatientController {
     return this.patientService.findOne(id);
   }
 
-  @Post('createByExternalId')
+  @Post('create')
   create(@Body() data: Prisma.PatientCreateInput): Promise<Patient> {
     return this.patientService.createOrUpdate(data);
   }
