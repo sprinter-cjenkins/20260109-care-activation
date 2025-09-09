@@ -39,7 +39,7 @@ model Patient {
   birthDate           DateTime
   createdAt           DateTime @default(now())
   email               String?
-  externalId          String
+  externalId          String @unique
   familyName          String
   givenName           String
   id                  String   @id @default(uuid())
