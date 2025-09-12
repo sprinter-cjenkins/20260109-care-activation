@@ -16,6 +16,14 @@ export interface CallInitiationRequest {
   taskType: CareTaskType;
 }
 
+interface BlandAIResponse {
+  status: string;
+  message: string;
+  call_id: string;
+  batch_id: string;
+  errors: string[];
+}
+
 @Injectable()
 export class CallerService {
   private readonly logger = new Logger(CallerService.name);
@@ -82,12 +90,12 @@ export class CallerService {
         );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as BlandAIResponse;
 
-      this.logger.log(`Call initiated successfully: ${data.call_id || data.id}`);
+      this.logger.log(`Call initiated successfully: ${data.call_id}`);
 
       return {
-        callId: data.call_id || data.id || 'unknown',
+        callId: data.call_id,
         status: 'initiated',
         message: 'Call initiated successfully',
       };

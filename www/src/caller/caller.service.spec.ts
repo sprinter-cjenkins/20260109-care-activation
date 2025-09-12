@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
+import { CareTaskStatus, CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
 import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
 
 // Mock fetch globally
@@ -29,7 +29,7 @@ describe('CallerService', () => {
   const mockDexaTask = {
     id: 'task-123',
     type: CareTaskType.DEXA_SCAN,
-    status: 'PENDING' as any,
+    status: CareTaskStatus.PENDING,
     patientId: 'patient-123',
     patient: mockPatient,
     createdAt: new Date(),
@@ -39,7 +39,7 @@ describe('CallerService', () => {
   const mockNonDexaTask = {
     id: 'task-456',
     type: 'OTHER' as CareTaskType,
-    status: 'PENDING' as any,
+    status: CareTaskStatus.PENDING,
     patientId: 'patient-123',
     patient: mockPatient,
     createdAt: new Date(),
