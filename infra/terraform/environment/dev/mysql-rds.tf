@@ -48,14 +48,14 @@ locals {
 }
 
 resource "aws_secretsmanager_secret" "care-activation-mysql-dev-db-string" {
-  name        = "dev/care-activation-mysql-string"
-  description = "MySQL credentials for development database"
+  name        = "dev/care-activation-mysql-connection-string"
+  description = "MySQL connectionString for development database"
 }
 
 resource "aws_secretsmanager_secret_version" "care-activation-mysql-dev-version" {
   secret_id = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.id
   secret_string = jsonencode({
-    connection_string = "mysql://${local.db_username}:${local.db_password}@${aws_db_instance.dev_mysql.endpoint}:${aws_db_instance.dev_mysql.port}/${aws_db_instance.dev_mysql.db_name}"
+    connection_string = "mysql://${local.db_username}:${local.db_password}@${aws_db_instance.dev_mysql.endpoint}/${aws_db_instance.dev_mysql.db_name}"
   })
 }
 
@@ -65,6 +65,7 @@ resource "aws_db_instance" "dev_mysql" {
   engine_version                      = "8.0"
   instance_class                      = "db.t3.micro"
   allocated_storage                   = 20
+  db_name                             = "care-activation-${terraform.workspace}-mysql-db"
   username                            = local.db_username
   password                            = local.db_password
   db_subnet_group_name                = aws_db_subnet_group.care-activation-dev-subnet-group.name
