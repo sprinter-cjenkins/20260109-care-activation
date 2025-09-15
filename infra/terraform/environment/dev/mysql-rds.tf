@@ -32,3 +32,17 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
+resource "aws_secretsmanager_secret" "care-activation-mysql-dev" {
+  name        = "dev/care-activation-mysql-credentials"
+  description = "MySQL credentials for development database"
+}
+
+data "aws_secretsmanager_secret_version" "dev_db" {
+  depends_on = [aws_secretsmanager_secret.care-activation-mysql-dev]
+  secret_id  = aws_secretsmanager_secret.care-activation-mysql-dev.id
+}
+
+locals {
+  db_username = jsondecode(data.aws_secretsmanager_secret_version.dev_db.secret_string).db_username
+  db_password = jsondecode(data.aws_secretsmanager_secret_version.dev_db.secret_string).db_password
+}
