@@ -1,5 +1,3 @@
-data "aws_availability_zones" "available" {}
-
 module "networking" {
   source        = "../../modules/networking"
   resource_name = var.resource_name
