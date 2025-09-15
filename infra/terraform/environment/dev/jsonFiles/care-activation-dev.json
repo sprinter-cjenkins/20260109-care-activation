@@ -1,0 +1,52 @@
+[
+  {
+    "name": "care-activation",
+    "image": "${aws_account_id}.dkr.ecr.${region}.amazonaws.com/care-activation-arm64:latest",
+    "cpu": 0,
+    "portMappings": [
+      {
+        "containerPort": 8080,
+        "hostPort": 8080,
+        "protocol": "tcp"
+      },
+      {
+        "containerPort": 8443,
+        "hostPort": 8443,
+        "protocol": "tcp"
+      }
+    ],
+    "essential": true,
+    "environment": [
+      {
+        "name": "DATABASE",
+        "value": "mysql"
+      },
+      {
+        "name": "DATABASE_URL",
+        "value": "jdbc:postgresql://care-activition-db-dev.xxxx.${region}.rds.amazonaws.com/care-activition-db-dev"
+      }
+    ],
+    "mountPoints": [],
+    "volumesFrom": [],
+    "secrets": [
+      {
+        "name": "DATABASE_PASSWORD",
+        "valueFrom": "arn:aws:secretsmanager:${region}:${aws_account_id}:secret:dev/care-activition/postgresDB-jexKiS:password::"
+      },
+      {
+        "name": "DATABASE_USERNAME",
+        "valueFrom": "arn:aws:secretsmanager:${region}:${aws_account_id}:secret:dev/care-activition/postgresDB-jexKiS:username::"
+      }
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/care-activation-dev",
+        "awslogs-create-group": "true",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "systemControls": []
+  }
+]
