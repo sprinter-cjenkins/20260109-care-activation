@@ -1,6 +1,3 @@
-# Caller identity
-data "aws_caller_identity" "current" {}
-
 # Fetch GitHub's OIDC certificate
 data "tls_certificate" "github_oidc" {
   url = "https://token.actions.githubusercontent.com"
