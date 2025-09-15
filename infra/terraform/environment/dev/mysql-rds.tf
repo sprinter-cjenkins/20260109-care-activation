@@ -47,14 +47,14 @@ locals {
   db_password = jsondecode(data.aws_secretsmanager_secret_version.dev_db.secret_string).db_password
 }
 
+resource "aws_secretsmanager_secret" "care-activation-mysql-dev-db-string" {
+  name        = "dev/care-activation-mysql-string"
+  description = "MySQL credentials for development database"
+}
+
 resource "aws_secretsmanager_secret_version" "care-activation-mysql-dev-version" {
-  secret_id = aws_secretsmanager_secret.care-activation-mysql-dev.id
+  secret_id = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.id
   secret_string = jsonencode({
-    db_username       = local.db_username
-    db_password       = local.db_password
-    db_host           = aws_db_instance.dev_mysql.endpoint
-    db_port           = aws_db_instance.dev_mysql.port
-    db_name           = aws_db_instance.dev_mysql.db_name
     connection_string = "mysql://${local.db_username}:${local.db_password}@${aws_db_instance.dev_mysql.endpoint}:${aws_db_instance.dev_mysql.port}/${aws_db_instance.dev_mysql.db_name}"
   })
 }

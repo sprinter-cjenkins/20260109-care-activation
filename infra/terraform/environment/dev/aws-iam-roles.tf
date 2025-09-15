@@ -65,7 +65,7 @@ resource "aws_iam_policy" "terraforms3backend_inline_policy" {
         Resource = [
           "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform",
           "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform/*",
-          "arn:aws:secretsmanager:us-west-2:417107812602:secret:dev/care-activation-mysql-credentials-c0k8Em"
+          aws_secretsmanager_secret.care-activation-mysql-dev.arn
         ]
       }
     ]
