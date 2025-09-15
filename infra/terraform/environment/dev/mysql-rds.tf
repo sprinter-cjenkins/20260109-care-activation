@@ -104,7 +104,11 @@ resource "aws_kms_key" "care-activation-mysql-dev-kms-key" {
         Sid    = "Allow administration of the key"
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/cjenkins-ca"
+          AWS = [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/cjenkins-ca",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/jpaad-ca",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/skumar-ca"
+          ]
         }
         Action = [
           "kms:*"
