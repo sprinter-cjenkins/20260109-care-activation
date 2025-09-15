@@ -8,7 +8,7 @@ resource "aws_db_subnet_group" "care-activation-dev-subnet-group" {
 }
 
 resource "aws_security_group" "care-activation-dev-subnet-app-rds-sg" {
-  name        = "care-activation-${terraform.workspace}-rds-sg"
+  name        = "care-activation-${terraform.workspace}-app-rds-sg"
   description = "Security group for development RDS MySQL"
   vpc_id      = module.networking.ids.vpc_id
 
@@ -27,13 +27,13 @@ resource "aws_security_group" "care-activation-dev-subnet-app-rds-sg" {
   }
 
   tags = {
-    Name        = "care-activation-${terraform.workspace}-rds-sg"
+    Name        = "care-activation-${terraform.workspace}-app-rds-sg"
     Environment = terraform.workspace
   }
 }
 
-resource "aws_security_group" "care-activation-dev-subnet-engineer-rds_sg" {
-  name        = "care-activation-${terraform.workspace}-rds-sg"
+resource "aws_security_group" "care-activation-dev-subnet-engineer-rds-sg" {
+  name        = "care-activation-${terraform.workspace}-engineer-rds-sg"
   description = "Security group for development engineer RDS MySQL"
   vpc_id      = module.networking.ids.vpc_id
 
@@ -88,7 +88,7 @@ resource "aws_secretsmanager_secret" "care-activation-mysql-dev-db-string" {
 resource "aws_secretsmanager_secret_version" "care-activation-mysql-dev-version" {
   secret_id = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.id
   secret_string = jsonencode({
-    connection_string = "mysql://${local.db_username}:${local.db_password}@${aws_db_instance.dev_mysql.endpoint}/${aws_db_instance.dev_mysql.db_name}"
+    connection_string = "mysql://${local.db_username}:${local.db_password}@${aws_db_instance.dev_mysql.endpoint}/${aws_db_instance.dev_mysql.identifier}"
   })
 }
 
@@ -101,17 +101,28 @@ resource "aws_kms_key" "care-activation-mysql-dev-kms-key" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid    = "AllowRDSUsage",
-        Effect = "Allow",
+        Sid    = "Allow administration of the key"
+        Effect = "Allow"
         Principal = {
-          AWS = "*"
-        },
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/cjenkins-ca"
+        }
+        Action = [
+          "kms:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow RDS usage of the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "rds.amazonaws.com"
+        }
         Action = [
           "kms:Encrypt",
           "kms:Decrypt",
           "kms:GenerateDataKey",
           "kms:DescribeKey"
-        ],
+        ]
         Resource = "*"
       }
     ]
@@ -140,34 +151,35 @@ resource "aws_db_parameter_group" "care-activation-mysql-dev-ssl" {
 }
 
 resource "aws_db_instance" "dev_mysql" {
-  identifier                            = "care-activation-${terraform.workspace}-mysql-db"
-  engine                                = "mysql"
-  engine_version                        = "8.0"
-  instance_class                        = "db.t3.micro"
-  allocated_storage                     = 20
-  db_name                               = "care-activation-${terraform.workspace}-mysql-db"
-  username                              = local.db_username
-  password                              = local.db_password
-  db_subnet_group_name                  = aws_db_subnet_group.care-activation-dev-subnet-group.name
-  skip_final_snapshot                   = true
-  publicly_accessible                   = false
-  multi_az                              = false
-  storage_type                          = "gp3"
-  backup_retention_period               = 7
-  deletion_protection                   = false
-  auto_minor_version_upgrade            = true
-  delete_automated_backups              = true
-  iam_database_authentication_enabled   = true
-  network_type                          = "IPV4"
-  parameter_group_name                  = aws_db_parameter_group.care-activation-mysql-dev-ssl.name
-  performance_insights_retention_period = 7
-  performance_insights_kms_key_id       = aws_kms_key.care-activation-mysql-dev-kms-key.arn
-  storage_encrypted                     = true
-  kms_key_id                            = aws_kms_key.care-activation-mysql-dev-kms-key.arn
+  identifier        = "care-activation-${terraform.workspace}-mysql-db"
+  engine            = "mysql"
+  engine_version    = "8.0"
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
+  #db_name                               = "care-activation-${terraform.workspace}-mysql-db"
+  username                            = local.db_username
+  password                            = local.db_password
+  db_subnet_group_name                = aws_db_subnet_group.care-activation-dev-subnet-group.name
+  skip_final_snapshot                 = true
+  publicly_accessible                 = false
+  multi_az                            = false
+  storage_type                        = "gp3"
+  backup_retention_period             = 7
+  deletion_protection                 = false
+  auto_minor_version_upgrade          = true
+  delete_automated_backups            = true
+  iam_database_authentication_enabled = true
+  network_type                        = "IPV4"
+  parameter_group_name                = aws_db_parameter_group.care-activation-mysql-dev-ssl.name
+  #performance_insights_retention_period = 7
+  #performance_insights_kms_key_id       = aws_kms_key.care-activation-mysql-dev-kms-key.arn
+  #performance_insights_enabled          = true
+  storage_encrypted = true
+  kms_key_id        = aws_kms_key.care-activation-mysql-dev-kms-key.arn
 
   vpc_security_group_ids = [
     aws_security_group.care-activation-dev-subnet-app-rds-sg.id,
-    aws_security_group.care-activation-dev-subnet-engineer-rds_sg.id
+    aws_security_group.care-activation-dev-subnet-engineer-rds-sg.id
   ]
 
   tags = {
