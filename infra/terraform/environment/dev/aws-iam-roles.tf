@@ -59,11 +59,13 @@ resource "aws_iam_policy" "terraforms3backend_inline_policy" {
           "s3:DeleteObjectVersion",
           "s3:ListBucket",
           "s3:GetBucketVersioning",
-          "s3:GetBucketObjectLockConfiguration"
+          "s3:GetBucketObjectLockConfiguration",
+          "secretsmanager:GetSecretValue"
         ]
         Resource = [
           "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform",
-          "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform/*"
+          "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform/*",
+          "arn:aws:secretsmanager:us-west-2:417107812602:secret:dev/care-activation-mysql-credentials-c0k8Em"
         ]
       }
     ]
