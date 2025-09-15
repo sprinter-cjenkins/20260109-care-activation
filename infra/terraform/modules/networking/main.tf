@@ -5,7 +5,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = var.enable_dns_hostnames
 
   tags = merge(var.tags, {
-    Name = "${ var.resource_name }-${ var.environment }-vpc"
+    Name = "${var.resource_name}-${var.environment}-vpc"
   })
 }
 
@@ -32,7 +32,7 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
   tags = merge(var.tags, {
-    Name = "${ var.resource_name }-${ var.environment }-internet-gateway"
+    Name = "${var.resource_name}-${var.environment}-internet-gateway"
   })
 }
 
@@ -46,7 +46,7 @@ resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main.id
 
   tags = merge(var.tags, {
-    Name = "${ var.resource_name }-${ var.environment }-${each.key}-rt"
+    Name = "${var.resource_name}-${var.environment}-${each.key}-rt"
   })
 }
 
@@ -81,7 +81,7 @@ resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.main.id
 
   tags = merge(var.tags, {
-    Name = "${ var.resource_name }-${ var.environment }-${each.key}-rt"
+    Name = "${var.resource_name}-${var.environment}-${each.key}-rt"
   })
 }
 
@@ -108,7 +108,7 @@ resource "aws_eip" "nat_eip" {
   domain = "vpc" # Specify domain as "vpc" for VPC-based EIP
 
   tags = merge(var.tags, {
-    Name = "${ var.resource_name }-${ var.environment }-${each.key}-nat-eip"
+    Name = "${var.resource_name}-${var.environment}-${each.key}-nat-eip"
   })
 }
 
@@ -130,7 +130,7 @@ resource "aws_nat_gateway" "nat" {
   ].id
 
   tags = merge(var.tags, {
-    Name = "${ var.resource_name }-${ var.environment }-private-nat-gateway-${each.key}"
+    Name = "${var.resource_name}-${var.environment}-private-nat-gateway-${each.key}"
   })
 }
 
@@ -157,7 +157,7 @@ resource "aws_vpc_endpoint" "vpc_endpoint" {
     var.tags,
     each.value.tags,
     {
-      Name = "${ var.resource_name }-${ var.environment }-${each.key}-endpoint"
+      Name = "${var.resource_name}-${var.environment}-${each.key}-endpoint"
     }
   )
 }
