@@ -46,3 +46,40 @@ locals {
   db_username = jsondecode(data.aws_secretsmanager_secret_version.dev_db.secret_string).db_username
   db_password = jsondecode(data.aws_secretsmanager_secret_version.dev_db.secret_string).db_password
 }
+
+resource "aws_secretsmanager_secret_version" "care-activation-mysql-dev-version" {
+  secret_id = aws_secretsmanager_secret.care-activation-mysql-dev.id
+  secret_string = jsonencode({
+    db_username       = local.db_username
+    db_password       = local.db_password
+    db_host           = aws_db_instance.dev_mysql.endpoint
+    db_port           = aws_db_instance.dev_mysql.port
+    db_name           = aws_db_instance.dev_mysql.db_name
+    connection_string = "mysql://${local.db_username}:${local.db_password}@${aws_db_instance.dev_mysql.endpoint}:${aws_db_instance.dev_mysql.port}/${aws_db_instance.dev_mysql.db_name}"
+  })
+}
+
+resource "aws_db_instance" "dev_mysql" {
+  identifier                          = "care-activation-${terraform.workspace}-mysql-db"
+  engine                              = "mysql"
+  engine_version                      = "8.0"
+  instance_class                      = "db.t3.micro"
+  allocated_storage                   = 20
+  username                            = local.db_username
+  password                            = local.db_password
+  db_subnet_group_name                = aws_db_subnet_group.care-activation-dev-subnet-group.name
+  vpc_security_group_ids              = [aws_security_group.rds_sg.id]
+  skip_final_snapshot                 = true
+  publicly_accessible                 = false
+  multi_az                            = false
+  storage_type                        = "gp3"
+  backup_retention_period             = 7
+  deletion_protection                 = false
+  auto_minor_version_upgrade          = true
+  iam_database_authentication_enabled = false
+
+  tags = {
+    Name        = "care-activation-${terraform.workspace}-mysql-db"
+    Environment = terraform.workspace
+  }
+}
