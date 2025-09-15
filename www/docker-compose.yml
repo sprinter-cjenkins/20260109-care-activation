@@ -6,20 +6,32 @@ services:
     container_name: my-mysql
     environment:
       MYSQL_ROOT_PASSWORD: dev
-      MYSQL_DATABASE: db_test          # main dev database
+      MYSQL_DATABASE: db_test # main dev database
     ports:
-      - "3306:3306"
+      - '3306:3306'
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
       interval: 5s
       retries: 5
 
+  app:
+    build: .
+    container_name: care-activation-app
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL=mysql://root:dev@mysql:3306/db_test
+      - BLAND_AI_API_KEY=${BLAND_AI_API_KEY}
+      - PORT=3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+
 volumes:
   mysql-data:
-
-
-
-
