@@ -164,7 +164,7 @@ export class CallerService {
     }
   }
 
-  async updateCallEvent(data: BlandAIResponse): Promise<void> {
+  async updateCallEvent(data: Partial<BlandAIResponse>): Promise<void> {
     const callEventId = await this.prisma.careTaskEvent.findFirstOrThrow({
       where: { externalId: data.call_id },
     });
@@ -184,5 +184,17 @@ export class CallerService {
         data: { result: CareTaskEventResult.SUCCESS },
       });
     }
+  }
+
+  async handleWebhook(payload: any): Promise<void> {
+    this.logger.log('Received webhook:', payload);
+    const { call_id, answered_by } = payload;
+
+    if (!call_id) {
+      this.logger.error('Webhook missing call_id');
+      return;
+    }
+
+    await this.updateCallEvent({ call_id, answered_by });
   }
 }
