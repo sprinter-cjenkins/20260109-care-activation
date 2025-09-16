@@ -1,13 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  CareTaskEventResult,
-  CareTaskStatus,
-  CareTaskType,
-  PartnerOrganization,
-  Patient,
-} from '@prisma/client';
+import { CareTaskStatus, CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
 import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
 
 // Mock fetch globally
@@ -163,8 +157,8 @@ describe('CallerService', () => {
       const mockUpdateEvent = jest.fn().mockResolvedValue({});
       jest.spyOn(prismaService.careTaskEvent, 'update').mockImplementation(mockUpdateEvent);
 
-      // @ts-ignore
-      jest.spyOn(prismaService.careTaskEvent, 'findFirstOrThrow').mockResolvedValue({ id: callId });
+      const mockFindEvent = jest.fn().mockResolvedValue({ id: callId });
+      jest.spyOn(prismaService.careTaskEvent, 'findFirstOrThrow').mockImplementation(mockFindEvent);
 
       // Act
       await service.getCallStatus(callId);
