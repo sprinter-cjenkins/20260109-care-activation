@@ -30,6 +30,7 @@ enum CareTaskEventType {
 }
 
 enum CareTaskEventResult {
+  INITIATED
   SUCCESS
   FAILED
   VOICEMAIL
@@ -65,6 +66,7 @@ model CareTask {
 model CareTaskEvent {
   createdAt     DateTime        @default(now())
   eventType     CareTaskEventType
+  externalId    String?
   failureReason String?
   id            String          @id @default(uuid())
   result        CareTaskEventResult

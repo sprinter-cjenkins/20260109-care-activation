@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CareTaskType, Patient } from '@prisma/client';
+import { CareTaskEventResult, CareTaskEventType, CareTaskType, Patient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
 
@@ -22,6 +22,10 @@ interface BlandAIResponse {
   call_id: string;
   batch_id: string;
   errors: string[];
+  transcript?: string;
+  answers?: Record<string, string>;
+  id?: string;
+  answered_by?: string;
 }
 
 @Injectable()
@@ -94,6 +98,15 @@ export class CallerService {
 
       this.logger.log(`Call initiated successfully: ${data.call_id}`);
 
+      await this.prisma.careTaskEvent.create({
+        data: {
+          taskId,
+          externalId: data.call_id,
+          eventType: CareTaskEventType.PATIENT_ONBOARDING_CALL,
+          result: CareTaskEventResult.INITIATED,
+        },
+      });
+
       return {
         callId: data.call_id,
         status: 'initiated',
@@ -106,6 +119,70 @@ export class CallerService {
         status: 'failed',
         message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
+    }
+  }
+
+  async getCallStatus(callId: string): Promise<CallResult> {
+    if (!this.blandApiKey) {
+      throw new Error('BLAND_AI_API_KEY environment variable not set');
+    }
+
+    this.logger.log(`Getting status for call ${callId}`);
+
+    try {
+      const response = await fetch(`${this.blandApiUrl}/calls/${callId}`, {
+        method: 'GET',
+        headers: {
+          authorization: this.blandApiKey,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Bland AI API error: ${response.status} ${response.statusText} - ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as BlandAIResponse;
+      await this.updateCallEvent(data);
+
+      return {
+        callId: data.call_id || data.id || callId,
+        status: data.status === 'completed' ? 'completed' : 'initiated',
+        message: 'Status retrieved successfully',
+        transcript: data.transcript,
+        answers: data.answers || {},
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get call status:`, error);
+      return {
+        callId,
+        status: 'failed',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  }
+
+  async updateCallEvent(data: BlandAIResponse): Promise<void> {
+    const callEventId = await this.prisma.careTaskEvent.findFirstOrThrow({
+      where: { externalId: data.call_id },
+    });
+
+    if (!callEventId) {
+      throw new Error('Call event not found');
+    }
+
+    if (data.answered_by === 'voicemail') {
+      await this.prisma.careTaskEvent.update({
+        where: { id: callEventId.id },
+        data: { result: CareTaskEventResult.VOICEMAIL },
+      });
+    } else {
+      await this.prisma.careTaskEvent.update({
+        where: { id: callEventId.id },
+        data: { result: CareTaskEventResult.SUCCESS },
+      });
     }
   }
 }
