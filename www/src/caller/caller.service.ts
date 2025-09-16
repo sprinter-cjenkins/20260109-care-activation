@@ -28,6 +28,11 @@ interface BlandAIResponse {
   answered_by?: string;
 }
 
+export interface BlandAIWebhookPayload {
+  call_id: string;
+  answered_by: string;
+}
+
 @Injectable()
 export class CallerService {
   private readonly logger = new Logger(CallerService.name);
@@ -186,7 +191,7 @@ export class CallerService {
     }
   }
 
-  async handleWebhook(payload: any): Promise<void> {
+  async handleWebhook(payload: BlandAIWebhookPayload): Promise<void> {
     this.logger.log('Received webhook:', payload);
     const { call_id, answered_by } = payload;
 
