@@ -44,5 +44,43 @@ export function getVoicemailMessage(patient: Patient, taskType: CareTaskType) {
 }
 
 export function getSummaryPrompt() {
-  return `Give me the results of this call as a valid JSON object where each question is a key and the answer is a value. If you find any thing else that should be shared, capture it in a new key called 'other'.`;
+  return `
+    Give me the results of this call as a valid JSON object. 
+    The first key should be 'questions' and it should be list of objects where each question 
+    from the original list is a key and the answer is a value. 
+    If you find any thing else that should be shared, capture it in a new top level 
+    key called 'other'. Within other you should have a similar list of objects of keys and values. 
+    If the key fits into any of these categories, use it. If not you can use other. 
+    Categories would be failureReason, notes, and sentiment.
+
+    You do not need to include other in the case of voicemail, since there was no interaction.
+
+    Sample object would be like:
+    {
+        questions: [
+        {
+            key: 'question1',
+            value: 'answer1'
+        },
+        {
+            key: 'question2',
+            value: 'answer2'
+        }],
+        other: [
+        {
+            key: 'failureReason',
+            value: 'answer1'
+        },
+        {
+            key: 'other',
+            value: 'answer2'
+        }
+        ]
+    }
+    `;
+}
+
+export function cleanJsonString(str: string): string {
+  // Remove triple backticks and optional "json" label
+  return str.replace(/```(json)?/g, '').trim();
 }

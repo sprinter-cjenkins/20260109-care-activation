@@ -1,6 +1,6 @@
 import { Controller, Post, Param, HttpCode, HttpStatus, Get, Body } from '@nestjs/common';
 import { CallerService, CallResult } from './caller.service';
-import type { BlandAIWebhookPayload } from './caller.service';
+import type { BlandAIResponse } from './caller.service';
 
 @Controller('caller')
 export class CallerController {
@@ -13,13 +13,13 @@ export class CallerController {
   }
 
   @Get('status/:callId')
-  async getCallStatus(@Param('callId') callId: string): Promise<CallResult> {
-    return this.callerService.getCallStatus(callId);
+  async getCall(@Param('callId') callId: string): Promise<CallResult> {
+    return this.callerService.getCall(callId);
   }
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
-  async handleWebhook(@Body() payload: BlandAIWebhookPayload): Promise<{ status: string }> {
+  async handleWebhook(@Body() payload: BlandAIResponse): Promise<{ status: string }> {
     try {
       await this.callerService.handleWebhook(payload);
       return { status: 'ok' };

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CallerService } from './caller.service';
+import { BlandAIResponse, CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CareTaskStatus, CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
 import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
@@ -61,8 +61,13 @@ describe('CallerService', () => {
               findUnique: jest.fn(),
             },
             careTaskEvent: {
+              create: jest.fn(),
               update: jest.fn(),
               findFirstOrThrow: jest.fn(),
+            },
+            eventResult: {
+              createMany: jest.fn(),
+              findMany: jest.fn(),
             },
           },
         },
@@ -84,6 +89,8 @@ describe('CallerService', () => {
   });
 
   describe('initiateCall', () => {
+    const taskId = 'task-123';
+
     it('should throw error when task is not found', async () => {
       // Arrange
       const taskId = 'non-existent-task';
@@ -95,7 +102,6 @@ describe('CallerService', () => {
 
     it('should throw error when task type is not DEXA_SCAN', async () => {
       // Arrange
-      const taskId = 'task-456';
       jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockNonDexaTask);
 
       // Act & Assert
@@ -103,8 +109,6 @@ describe('CallerService', () => {
     });
 
     it('should successfully call Bland AI with correct parameters for DEXA_SCAN task', async () => {
-      const taskId = 'task-123';
-
       jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockDexaTask);
 
       const mockBlandResponse = {
@@ -140,73 +144,100 @@ describe('CallerService', () => {
     });
   });
 
-  describe('getCallStatus', () => {
-    it('should update task event with SUCCESS when call is completed', async () => {
-      // Arrange
-      const callId = 'bland-call-123';
-      const mockBlandResponse = {
-        call_id: callId,
-        answered_by: 'human',
-      };
+  describe('getCall', () => {
+    const callId = 'bland-call-123';
+
+    let mockBlandResponse = {
+      call_id: callId,
+      answered_by: 'human',
+      summary: JSON.stringify({}),
+    };
+
+    let mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
+    let mockCareTaskFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
+    let mockEventResultCreateMany = jest.fn().mockResolvedValue({});
+    let mockEventResultFindMany = jest.fn().mockResolvedValue([]);
+    let mockEventResultFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
+
+    beforeEach(() => {
+      jest.spyOn(prismaService.careTaskEvent, 'update').mockImplementation(mockCareTaskUpdateEvent);
+      jest
+        .spyOn(prismaService.careTaskEvent, 'findFirstOrThrow')
+        .mockImplementation(mockCareTaskFindFirstOrThrow);
+      jest
+        .spyOn(prismaService.eventResult, 'createMany')
+        .mockImplementation(mockEventResultCreateMany);
+      jest.spyOn(prismaService.eventResult, 'findMany').mockImplementation(mockEventResultFindMany);
+      jest
+        .spyOn(prismaService.careTaskEvent, 'findFirstOrThrow')
+        .mockImplementation(mockEventResultFindFirstOrThrow);
 
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockBlandResponse),
       });
+    });
 
-      const mockUpdateEvent = jest.fn().mockResolvedValue({});
-      jest.spyOn(prismaService.careTaskEvent, 'update').mockImplementation(mockUpdateEvent);
-
-      const mockFindEvent = jest.fn().mockResolvedValue({ id: callId });
-      jest.spyOn(prismaService.careTaskEvent, 'findFirstOrThrow').mockImplementation(mockFindEvent);
-
-      // Act
-      await service.getCallStatus(callId);
+    it('should update task event with SUCCESS when call is completed', async () => {
+      await service.getCall(callId);
 
       // Assert
-      expect(mockUpdateEvent).toHaveBeenCalledWith({
+      expect(mockCareTaskUpdateEvent).toHaveBeenCalledWith({
         where: {
           id: callId,
         },
         data: {
-          result: 'SUCCESS',
+          status: 'SUCCESS',
         },
       });
     });
 
     it('should update task event with VOICEMAIL when call goes to voicemail', async () => {
-      // Arrange
-      const callId = 'bland-call-123';
-      const mockBlandResponse = {
-        call_id: callId,
-        answered_by: 'voicemail', // or whatever status indicates voicemail
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBlandResponse),
-      });
-
-      const mockUpdateEvent = jest.fn().mockResolvedValue({});
-      jest.spyOn(prismaService.careTaskEvent, 'update').mockImplementation(mockUpdateEvent);
-
-      const mockFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
-      jest
-        .spyOn(prismaService.careTaskEvent, 'findFirstOrThrow')
-        .mockImplementation(mockFindFirstOrThrow);
-
-      // Act
-      await service.getCallStatus(callId);
-
-      // Assert
-      expect(mockUpdateEvent).toHaveBeenCalledWith({
+      mockBlandResponse.answered_by = 'voicemail';
+      await service.getCall(callId);
+      expect(mockCareTaskUpdateEvent).toHaveBeenCalledWith({
         where: {
           id: callId,
         },
         data: {
-          result: 'VOICEMAIL',
+          status: 'VOICEMAIL',
         },
       });
+    });
+
+    it('should create question results if summary has questions', async () => {
+      mockBlandResponse.summary = JSON.stringify({
+        questions: [{ key: 'question1', value: 'answer1' }],
+        other: [{ key: 'other1', value: 'answer2' }],
+      });
+
+      await service.getCall(callId);
+
+      expect(mockEventResultCreateMany).toHaveBeenCalledWith({
+        data: [{ type: 'QUESTION', eventId: callId, key: 'question1', value: 'answer1' }],
+      });
+
+      expect(mockEventResultCreateMany).toHaveBeenCalledWith({
+        data: [{ type: 'OTHER', eventId: callId, key: 'other1', value: 'answer2' }],
+      });
+    });
+
+    it('should not create question results if we already created them', async () => {
+      mockBlandResponse.summary = JSON.stringify({
+        questions: [{ key: 'question1', value: 'answer1' }],
+      });
+
+      mockEventResultFindMany = jest
+        .fn()
+        .mockResolvedValue([
+          { type: 'QUESTION', eventId: callId, key: 'question1', value: 'answer1' },
+        ]);
+
+      jest.spyOn(prismaService.eventResult, 'findMany').mockImplementation(mockEventResultFindMany);
+
+      await service.getCall(callId);
+
+      expect(mockEventResultCreateMany).not.toHaveBeenCalled();
     });
   });
 });
