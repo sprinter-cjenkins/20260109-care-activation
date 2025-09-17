@@ -29,11 +29,16 @@ enum CareTaskEventType {
   PATIENT_ONBOARDING_CALL
 }
 
-enum CareTaskEventResult {
+enum CareTaskEventStatus {
   INITIATED
   SUCCESS
   FAILED
   VOICEMAIL
+}
+
+enum EventResultType {
+  QUESTION
+  OTHER
 }
 
 model Patient {
@@ -69,8 +74,20 @@ model CareTaskEvent {
   externalId    String?
   failureReason String?
   id            String          @id @default(uuid())
-  result        CareTaskEventResult
+  results       EventResult[]
+  status        CareTaskEventStatus
   task          CareTask        @relation(fields: [taskId], references: [id])
   taskId        String
   updatedAt     DateTime        @updatedAt
+}
+
+model EventResult {
+  createdAt DateTime        @default(now())
+  id        String          @id @default(uuid())
+  type      EventResultType
+  eventId   String
+  event     CareTaskEvent @relation(fields: [eventId], references: [id])
+  key       String
+  value     String
+  updatedAt DateTime        @updatedAt
 }

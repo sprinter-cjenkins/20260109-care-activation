@@ -1,7 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CareTaskEventResult, CareTaskEventType, CareTaskType, Patient } from '@prisma/client';
+import {
+  CareTaskEventStatus,
+  CareTaskEventType,
+  CareTaskType,
+  EventResultType,
+  Patient,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
+import {
+  cleanJsonString,
+  getAiTask,
+  getFirstSentence,
+  getSummaryPrompt,
+  getVoicemailMessage,
+} from './utils';
 
 export interface CallResult {
   callId: string;
@@ -16,7 +28,7 @@ export interface CallInitiationRequest {
   taskType: CareTaskType;
 }
 
-interface BlandAIResponse {
+export interface BlandAIResponse {
   status: string;
   message: string;
   call_id: string;
@@ -25,12 +37,19 @@ interface BlandAIResponse {
   transcript?: string;
   answers?: Record<string, string>;
   id?: string;
-  answered_by?: string;
+  summary: string;
+  answered_by: string;
 }
 
-export interface BlandAIWebhookPayload {
+interface BlandAISummary {
+  questions: Array<{ key: string; value: string }>;
+  other: Array<{ key: string; value: string }>;
+}
+
+export interface ParsedBlandAIResponse {
   call_id: string;
   answered_by: string;
+  summary: BlandAISummary;
 }
 
 @Injectable()
@@ -108,7 +127,7 @@ export class CallerService {
           taskId,
           externalId: data.call_id,
           eventType: CareTaskEventType.PATIENT_ONBOARDING_CALL,
-          result: CareTaskEventResult.INITIATED,
+          status: CareTaskEventStatus.INITIATED,
         },
       });
 
@@ -127,7 +146,7 @@ export class CallerService {
     }
   }
 
-  async getCallStatus(callId: string): Promise<CallResult> {
+  async getCall(callId: string): Promise<CallResult> {
     if (!this.blandApiKey) {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
@@ -150,7 +169,8 @@ export class CallerService {
       }
 
       const data = (await response.json()) as BlandAIResponse;
-      await this.updateCallEvent(data);
+      const parsedData = this.parseBlandAIResponse(data);
+      await this.updateCallEvent(parsedData);
 
       return {
         callId: data.call_id || data.id || callId,
@@ -169,37 +189,92 @@ export class CallerService {
     }
   }
 
-  async updateCallEvent(data: Partial<BlandAIResponse>): Promise<void> {
+  parseBlandAIResponse(data: BlandAIResponse): ParsedBlandAIResponse {
+    const { call_id, answered_by, summary } = data;
+    const parsedSummary = JSON.parse(cleanJsonString(summary)) as BlandAISummary;
+    return { call_id, answered_by, summary: parsedSummary };
+  }
+
+  async updateCallEvent(data: ParsedBlandAIResponse): Promise<void> {
+    const { call_id, answered_by, summary } = data;
     const callEventId = await this.prisma.careTaskEvent.findFirstOrThrow({
-      where: { externalId: data.call_id },
+      where: { externalId: call_id },
     });
 
     if (!callEventId) {
       throw new Error('Call event not found');
     }
 
-    if (data.answered_by === 'voicemail') {
+    if (answered_by === 'voicemail') {
       await this.prisma.careTaskEvent.update({
         where: { id: callEventId.id },
-        data: { result: CareTaskEventResult.VOICEMAIL },
+        data: { status: CareTaskEventStatus.VOICEMAIL },
       });
-    } else {
+    } else if (answered_by === 'human') {
       await this.prisma.careTaskEvent.update({
         where: { id: callEventId.id },
-        data: { result: CareTaskEventResult.SUCCESS },
+        data: { status: CareTaskEventStatus.SUCCESS },
+      });
+    }
+
+    if (summary?.questions?.length > 0) {
+      const existingQuestions = await this.prisma.eventResult.findMany({
+        where: {
+          type: EventResultType.QUESTION,
+          eventId: callEventId.id,
+        },
+      });
+
+      const nonExistingQuestions = summary.questions.filter(
+        (question) => !existingQuestions.some((q) => q.key === question.key),
+      );
+
+      if (nonExistingQuestions.length > 0) {
+        await this.prisma.eventResult.createMany({
+          data: nonExistingQuestions.map((question) => ({
+            type: EventResultType.QUESTION,
+            eventId: callEventId.id,
+            key: question.key,
+            value: question.value,
+          })),
+        });
+      }
+    }
+
+    if (summary?.other?.length > 0) {
+      const existingOther = await this.prisma.eventResult.findMany({
+        where: {
+          type: EventResultType.OTHER,
+          eventId: callEventId.id,
+        },
+      });
+
+      const nonExistingOther = summary.other.filter(
+        (other) => !existingOther.some((o) => o.key === other.key),
+      );
+
+      await this.prisma.eventResult.createMany({
+        data: nonExistingOther.map((other) => ({
+          type: EventResultType.OTHER,
+          eventId: callEventId.id,
+          key: other.key,
+          value: other.value,
+        })),
       });
     }
   }
 
-  async handleWebhook(payload: BlandAIWebhookPayload): Promise<void> {
+  async handleWebhook(payload: BlandAIResponse): Promise<void> {
     this.logger.log('Received webhook:', payload);
-    const { call_id, answered_by } = payload;
+    const { call_id } = payload;
 
     if (!call_id) {
       this.logger.error('Webhook missing call_id');
       return;
     }
 
-    await this.updateCallEvent({ call_id, answered_by });
+    const parsedData = this.parseBlandAIResponse(payload);
+
+    await this.updateCallEvent(parsedData);
   }
 }
