@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BlandAIResponse, CallerService } from './caller.service';
+import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CareTaskStatus, CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
 import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
@@ -147,17 +147,17 @@ describe('CallerService', () => {
   describe('getCall', () => {
     const callId = 'bland-call-123';
 
-    let mockBlandResponse = {
+    const mockBlandResponse = {
       call_id: callId,
       answered_by: 'human',
       summary: JSON.stringify({}),
     };
 
-    let mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
-    let mockCareTaskFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
-    let mockEventResultCreateMany = jest.fn().mockResolvedValue({});
+    const mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
+    const mockCareTaskFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
+    const mockEventResultCreateMany = jest.fn().mockResolvedValue({});
     let mockEventResultFindMany = jest.fn().mockResolvedValue([]);
-    let mockEventResultFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
+    const mockEventResultFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
 
     beforeEach(() => {
       jest.spyOn(prismaService.careTaskEvent, 'update').mockImplementation(mockCareTaskUpdateEvent);
