@@ -6,7 +6,6 @@ import {
   OutreachChannel,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { getAiTask } from './utils';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 
@@ -49,45 +48,29 @@ export class CallerService {
       throw new Error('Patient has opted out of phone outreach');
     }
 
-    const aiTask = getAiTask(taskType);
-    if (!aiTask) {
-      throw new Error('Task not found');
-    }
+    this.logger.log(`Initiating call for patient ${patient.id})`);
 
-    this.logger.log(
-      `Initiating call for patient ${patient.id} (${patient.givenName} ${patient.familyName})`,
-    );
+    const callResult = await this.callerProvider.initiateCall({
+      patient,
+      taskType,
+    });
 
-    try {
-      const callResult = await this.callerProvider.initiateCall({
-        patient,
-        taskType,
-      });
+    this.logger.log(`Call initiated successfully: ${callResult.callId}`);
 
-      this.logger.log(`Call initiated successfully: ${callResult.callId}`);
+    await this.prisma.careTaskEvent.create({
+      data: {
+        taskId,
+        externalId: callResult.callId,
+        eventType: CareTaskEventType.PATIENT_ONBOARDING_CALL,
+        status: CareTaskEventStatus.INITIATED,
+      },
+    });
 
-      await this.prisma.careTaskEvent.create({
-        data: {
-          taskId,
-          externalId: callResult.callId,
-          eventType: CareTaskEventType.PATIENT_ONBOARDING_CALL,
-          status: CareTaskEventStatus.INITIATED,
-        },
-      });
-
-      return {
-        callId: callResult.callId,
-        status: 'initiated',
-        message: 'Call initiated successfully',
-      };
-    } catch (error) {
-      this.logger.error(`Failed to initiate call:`, error);
-      return {
-        callId: '',
-        status: 'failed',
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return {
+      callId: callResult.callId,
+      status: 'initiated',
+      message: 'Call initiated successfully',
+    };
   }
 
   async getCall(callId: string): Promise<APICallResult> {
