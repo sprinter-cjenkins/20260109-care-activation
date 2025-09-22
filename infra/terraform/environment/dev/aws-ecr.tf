@@ -29,6 +29,48 @@ resource "aws_iam_role" "ca_ecr_rw_role" {
   })
 }
 
+resource "aws_iam_policy" "github_actions_ecr_push" {
+  name        = "care-activation-dev-ecr-push-role"
+  description = "Allows GitHub Actions to push images to care-activation ECR repo"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid = "ECRLogin"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid = "ECRPushPullCareActivation"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:DescribeRepositories",
+          "ecr:GetRepositoryPolicy"
+        ]
+        Resource = "arn:aws:ecr:${data.aws_caller_identity.current.account_id}:${data.aws_region.current.name}:repository/care-activation"
+      },
+      {
+        Sid = "OptionalListECR"
+        Effect = "Allow"
+        Action = [
+          "ecr:ListImages",
+          "ecr:DescribeImages"
+        ]
+        Resource = "arn:aws:ecr:${data.aws_caller_identity.current.account_id}:${data.aws_region.current.name}:repository/care-activation"
+      }
+    ]
+  })
+}
+
 resource "aws_ecr_repository" "care_activation" {
   image_tag_mutability = "MUTABLE"
   name                 = "care-activation"
