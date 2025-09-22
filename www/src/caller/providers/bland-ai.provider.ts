@@ -42,6 +42,12 @@ export class BlandAIProvider implements CallerProvider {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
+    const aiTask = getAiTask(taskType);
+
+    if (!aiTask) {
+      throw new Error('Task not found');
+    }
+
     try {
       const response = await fetch(`${this.blandApiUrl}/calls`, {
         method: 'POST',
@@ -52,7 +58,7 @@ export class BlandAIProvider implements CallerProvider {
         body: JSON.stringify({
           phone_number: patient.phoneNumber,
           voice: 'June',
-          task: getAiTask(taskType),
+          task: aiTask,
           first_sentence: getFirstSentence(patient),
           voicemail: {
             message: getVoicemailMessage(patient, taskType),

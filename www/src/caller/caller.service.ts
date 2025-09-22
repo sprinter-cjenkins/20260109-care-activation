@@ -50,36 +50,27 @@ export class CallerService {
 
     this.logger.log(`Initiating call for patient ${patient.id})`);
 
-    try {
-      const callResult = await this.callerProvider.initiateCall({
-        patient,
-        taskType,
-      });
+    const callResult = await this.callerProvider.initiateCall({
+      patient,
+      taskType,
+    });
 
-      this.logger.log(`Call initiated successfully: ${callResult.callId}`);
+    this.logger.log(`Call initiated successfully: ${callResult.callId}`);
 
-      await this.prisma.careTaskEvent.create({
-        data: {
-          taskId,
-          externalId: callResult.callId,
-          eventType: CareTaskEventType.PATIENT_ONBOARDING_CALL,
-          status: CareTaskEventStatus.INITIATED,
-        },
-      });
+    await this.prisma.careTaskEvent.create({
+      data: {
+        taskId,
+        externalId: callResult.callId,
+        eventType: CareTaskEventType.PATIENT_ONBOARDING_CALL,
+        status: CareTaskEventStatus.INITIATED,
+      },
+    });
 
-      return {
-        callId: callResult.callId,
-        status: 'initiated',
-        message: 'Call initiated successfully',
-      };
-    } catch (error) {
-      this.logger.error(`Failed to initiate call:`, error);
-      return {
-        callId: '',
-        status: 'failed',
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return {
+      callId: callResult.callId,
+      status: 'initiated',
+      message: 'Call initiated successfully',
+    };
   }
 
   async getCall(callId: string): Promise<APICallResult> {
