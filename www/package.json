@@ -24,7 +24,6 @@
     "docker:compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build"
   },
   "dependencies": {
-    "@elevenlabs/elevenlabs-js": "^2.16.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

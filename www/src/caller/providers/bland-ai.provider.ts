@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
 import { CallerService } from '../caller.service';
+import { getAiTask } from '../utils';
 import { cleanJsonString, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from '../utils';
 
 export interface BlandAIResponse {
@@ -52,7 +53,7 @@ export class BlandAIProvider implements CallerProvider {
           // TODO: Fill in actual request body parameters
           phone_number: patient.phone,
           voice: 'June',
-          task: taskType,
+          task: getAiTask(taskType),
           first_sentence: getFirstSentence(patient),
           voicemail: {
             message: getVoicemailMessage(patient, taskType),
@@ -108,10 +109,15 @@ export class BlandAIProvider implements CallerProvider {
 
       const data = (await response.json()) as BlandAIResponse;
       const parsedData = this.parseBlandAIResponse(data);
+      const answeredBy =
+        parsedData.answered_by === 'human' || parsedData.answered_by === 'voicemail'
+          ? parsedData.answered_by
+          : undefined;
       return {
         callId: parsedData.call_id || callId,
         status: data.status === 'completed' ? 'completed' : 'initiated',
         summary: parsedData.summary,
+        answeredBy,
       };
     } catch (error) {
       this.logger.error(`Failed to get call status:`, error);

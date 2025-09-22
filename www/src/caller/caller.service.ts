@@ -76,7 +76,6 @@ export class CallerService {
 
   async getCall(callId: string): Promise<APICallResult> {
     this.logger.log(`Getting status for call ${callId}`);
-
     try {
       const result = await this.callerProvider.getCall(callId);
       await this.updateCallEvent(result);

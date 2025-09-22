@@ -151,6 +151,7 @@ describe('CallerService', () => {
       call_id: callId,
       answered_by: 'human',
       summary: JSON.stringify({}),
+      status: 'completed',
     };
 
     const mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
