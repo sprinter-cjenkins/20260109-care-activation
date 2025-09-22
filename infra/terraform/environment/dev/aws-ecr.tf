@@ -29,6 +29,7 @@ resource "aws_iam_role" "ca_ecr_rw_role" {
   })
 }
 
+# IAM Policy
 resource "aws_iam_policy" "github_actions_ecr_push" {
   name        = "${var.resource_name}-${terraform.workspace}-ecr-push-policy"
   description = "Allows GitHub Actions to push images to care-activation ECR repo"
@@ -71,10 +72,10 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
   })
 }
 
-resource "aws_iam_policy_attachment" "github_actions_ecr_push_attachment" {
-  name       = "${var.resource_name}-${terraform.workspace}-ecr-push-policy-attachment"
+# Attach Policy
+resource "aws_iam_role_policy_attachment" "github_actions_ecr_push_attachment" {
+  role       = aws_iam_role.ca_ecr_rw_role.name
   policy_arn = aws_iam_policy.github_actions_ecr_push.arn
-  roles      = [ aws_iam_role.ca_ecr_rw_role.name ]
 }
 
 resource "aws_ecr_repository" "care_activation" {
