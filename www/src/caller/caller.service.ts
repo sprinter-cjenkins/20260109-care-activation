@@ -6,7 +6,6 @@ import {
   OutreachChannel,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { getAiTask } from './utils';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 
@@ -49,14 +48,7 @@ export class CallerService {
       throw new Error('Patient has opted out of phone outreach');
     }
 
-    const aiTask = getAiTask(taskType);
-    if (!aiTask) {
-      throw new Error('Task not found');
-    }
-
-    this.logger.log(
-      `Initiating call for patient ${patient.id} (${patient.givenName} ${patient.familyName})`,
-    );
+    this.logger.log(`Initiating call for patient ${patient.id})`);
 
     try {
       const callResult = await this.callerProvider.initiateCall({
