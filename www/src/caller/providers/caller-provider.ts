@@ -20,5 +20,6 @@ export interface CallInitiationRequest {
 export interface CallerProvider {
   initiateCall: (request: CallInitiationRequest) => Promise<CallResult>;
   getCall: (callId: string) => Promise<CallResult>;
-  parseWebhook: (payload: any) => Promise<CallResult>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  parseWebhook: (payload: any) => CallResult;
 }

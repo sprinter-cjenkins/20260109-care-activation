@@ -128,7 +128,7 @@ export class BlandAIProvider implements CallerProvider {
     return { call_id, answered_by, summary: parsedSummary };
   }
 
-  async parseWebhook(payload: any): Promise<CallResult> {
+  parseWebhook(payload: any): CallResult {
     const parsedData = this.parseBlandAIResponse(payload as BlandAIResponse);
     const answeredBy =
       parsedData.answered_by === 'human' || parsedData.answered_by === 'voicemail'

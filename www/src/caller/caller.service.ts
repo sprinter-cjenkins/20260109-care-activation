@@ -163,10 +163,11 @@ export class CallerService {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async handleWebhook(payload: any): Promise<void> {
     this.logger.log('Received webhook:', payload);
 
-    const parsedData = await this.callerProvider.parseWebhook(payload);
+    const parsedData = this.callerProvider.parseWebhook(payload);
 
     await this.updateCallEvent(parsedData);
   }

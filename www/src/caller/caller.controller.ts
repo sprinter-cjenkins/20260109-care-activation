@@ -18,6 +18,7 @@ export class CallerController {
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async handleWebhook(@Body() payload: any): Promise<{ status: string }> {
     try {
       await this.callerService.handleWebhook(payload);
