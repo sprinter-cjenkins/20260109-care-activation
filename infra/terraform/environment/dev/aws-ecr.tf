@@ -30,14 +30,14 @@ resource "aws_iam_role" "ca_ecr_rw_role" {
 }
 
 resource "aws_iam_policy" "github_actions_ecr_push" {
-  name        = "care-activation-dev-ecr-push-role"
+  name        = "${var.resource_name}-${terraform.workspace}-ecr-push-policy"
   description = "Allows GitHub Actions to push images to care-activation ECR repo"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid = "ECRLogin"
+        Sid    = "ECRLogin"
         Effect = "Allow"
         Action = [
           "ecr:GetAuthorizationToken"
@@ -45,7 +45,7 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
         Resource = "*"
       },
       {
-        Sid = "ECRPushPullCareActivation"
+        Sid    = "ECRPushPullCareActivation"
         Effect = "Allow"
         Action = [
           "ecr:BatchCheckLayerAvailability",
@@ -59,7 +59,7 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
         Resource = "arn:aws:ecr:${data.aws_caller_identity.current.account_id}:${data.aws_region.current.name}:repository/care-activation"
       },
       {
-        Sid = "OptionalListECR"
+        Sid    = "OptionalListECR"
         Effect = "Allow"
         Action = [
           "ecr:ListImages",
@@ -69,6 +69,12 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
       }
     ]
   })
+}
+
+resource "aws_iam_policy_attachment" "github_actions_ecr_push_attachment" {
+  name       = "${var.resource_name}-${terraform.workspace}-ecr-push-policy-attachment"
+  policy_arn = aws_iam_policy.github_actions_ecr_push.arn
+  roles      = [ aws_iam_role.ca_ecr_rw_role.name ]
 }
 
 resource "aws_ecr_repository" "care_activation" {
