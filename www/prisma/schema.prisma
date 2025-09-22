@@ -44,14 +44,14 @@ enum EventResultType {
 model Patient {
   birthDate           DateTime
   createdAt           DateTime @default(now())
-  email               String?
+  emailAddress        String?
   externalId          String @unique
   familyName          String
   givenName           String
   id                  String   @id @default(uuid())
   metadata            Json
   partnerOrganization PartnerOrganization
-  phone               String
+  phoneNumber         String
   tasks               CareTask[]
   timezone            String
   updatedAt           DateTime @updatedAt

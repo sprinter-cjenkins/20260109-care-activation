@@ -50,8 +50,7 @@ export class BlandAIProvider implements CallerProvider {
           authorization: this.blandApiKey,
         },
         body: JSON.stringify({
-          // TODO: Fill in actual request body parameters
-          phone_number: patient.phone,
+          phone_number: patient.phoneNumber,
           voice: 'June',
           task: getAiTask(taskType),
           first_sentence: getFirstSentence(patient),
