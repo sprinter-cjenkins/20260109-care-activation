@@ -1,0 +1,48 @@
+name: Build and Push Pre-Release to ECR
+
+on:
+  push:
+    branches:
+      - develop
+      - "release/*"
+
+jobs:
+  prerelease:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::417107812602:role/care-activation-dev-ecr-push-role
+          aws-region: <AWS_REGION>
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Pre-release Docker image
+        run: |
+          BRANCH_NAME=${GITHUB_REF_NAME}
+          SANITIZED_BRANCH=$(echo $BRANCH_NAME | sed 's#[^a-zA-Z0-9._-]#-#g')
+
+          USERNAME=${GITHUB_ACTOR}
+          SANITIZED_USER=$(echo $USERNAME | sed 's#[^a-zA-Z0-9._-]#-#g')
+
+          if [ "$SANITIZED_BRANCH" = "develop" ]; then
+            IMAGE_TAG=pre-care-activation-${SANITIZED_BRANCH}-${SANITIZED_USER}
+          else
+            IMAGE_TAG=pre-care-activation-${SANITIZED_BRANCH}
+          fi
+
+          REPO_URI=${{ steps.login-ecr.outputs.registry }}/care-activation
+
+          docker build -t $REPO_URI:$IMAGE_TAG .
+          docker push $REPO_URI:$IMAGE_TAG
