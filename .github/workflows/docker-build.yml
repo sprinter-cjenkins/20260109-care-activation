@@ -21,7 +21,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::417107812602:role/care-activation-dev-ecr-push-role
-          aws-region: <AWS_REGION>
+          aws-region: us-west-2
 
       # --- Log in to Amazon ECR ---
       - name: Login to Amazon ECR
@@ -30,7 +30,9 @@ jobs:
 
       # --- Build, tag, and push the image ---
       - name: Build and Push Docker image
+        working-directory: ./www
         run: |
+          npm install
           IMAGE_TAG=commit-${GITHUB_SHA::8}
           REPO_URI=${{ steps.login-ecr.outputs.registry }}/care-activation
 
