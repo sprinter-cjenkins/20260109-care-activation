@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CareTaskEventStatus, CareTaskEventType, EventResultType } from '@prisma/client';
+import {
+  CareTaskEventStatus,
+  CareTaskEventType,
+  EventResultType,
+  OutreachChannel,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { getAiTask } from './utils';
 import { CallResult, CallerProvider } from './providers/caller-provider';
@@ -32,6 +37,17 @@ export class CallerService {
 
     const patient = task.patient;
     const taskType = task.type;
+
+    const optOut = await this.prisma.patientOptOut.findFirst({
+      where: {
+        patientId: patient.id,
+        channel: OutreachChannel.PHONE,
+      },
+    });
+
+    if (optOut) {
+      throw new Error('Patient has opted out of phone outreach');
+    }
 
     const aiTask = getAiTask(taskType);
     if (!aiTask) {

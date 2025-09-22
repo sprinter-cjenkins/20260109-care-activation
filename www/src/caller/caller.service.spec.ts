@@ -1,7 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CareTaskStatus, CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
+import {
+  CareTaskStatus,
+  CareTaskType,
+  OutreachChannel,
+  PartnerOrganization,
+  Patient,
+} from '@prisma/client';
 import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
 
 // Mock fetch globally
@@ -68,6 +74,9 @@ describe('CallerService', () => {
             eventResult: {
               createMany: jest.fn(),
               findMany: jest.fn(),
+            },
+            patientOptOut: {
+              findFirst: jest.fn(),
             },
           },
         },
@@ -141,6 +150,20 @@ describe('CallerService', () => {
           summary_prompt: getSummaryPrompt(),
         }),
       });
+    });
+
+    it('should throw error when patient has opted out of phone outreach', async () => {
+      jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockDexaTask);
+      jest.spyOn(prismaService.patientOptOut, 'findFirst').mockResolvedValue({
+        id: 'opt-out-123',
+        patientId: mockPatient.id,
+        channel: OutreachChannel.PHONE,
+        createdAt: new Date(),
+      });
+
+      await expect(service.initiateCall(taskId)).rejects.toThrow(
+        'Patient has opted out of phone outreach',
+      );
     });
   });
 

@@ -41,6 +41,12 @@ enum EventResultType {
   OTHER
 }
 
+enum OutreachChannel {
+  EMAIL
+  SMS
+  PHONE
+}
+
 model Patient {
   birthDate           DateTime
   createdAt           DateTime @default(now())
@@ -50,11 +56,20 @@ model Patient {
   givenName           String
   id                  String   @id @default(uuid())
   metadata            Json
+  optedOutChannels    PatientOptOut[]
   partnerOrganization PartnerOrganization
   phoneNumber         String
   tasks               CareTask[]
   timezone            String
   updatedAt           DateTime @updatedAt
+}
+
+model PatientOptOut {
+  createdAt DateTime        @default(now())
+  id        String          @id @default(uuid())
+  patient   Patient         @relation(fields: [patientId], references: [id])
+  patientId String
+  channel   OutreachChannel
 }
 
 model CareTask {
