@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+#  release:
+#    types: [published]
 
 concurrency:
   group: docker-build-${{ github.head_ref }}
@@ -15,17 +17,25 @@ permissions:
 
 jobs:
   build:
+    name: Build & Deploy Docker Image #to ECS
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./www
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: >-
-            arn:aws:iam::417107812602:role/care-activation-dev-ecr-rw-role
+          role-to-assume: arn:aws:iam::417107812602:role/care-activation-dev-ecr-rw-role
           role-session-name: gh-${{ github.repository_id }}-docker-build-${{ github.actor }}
           aws-region: us-west-2
 
@@ -33,17 +43,32 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Docker image
-        working-directory: ./www
+      - name: Set Image Tags
         run: |
-          npm install
-          IMAGE_TAG=commit-${GITHUB_SHA::8}
-          REPO_URI=${{ steps.login-ecr.outputs.registry }}/care-activation
+          export REPO_URI=${{ steps.login-ecr.outputs.registry }}/care-activation
+          export COMMIT_TAG=sha-${GITHUB_SHA::8}
+          export LATEST_TAG=latest
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            export VERSION_TAG=${GITHUB_REF#refs/tags/}
+          fi
+          echo "REPO_URI=$REPO_URI" >> $GITHUB_ENV
+          echo "COMMIT_TAG=$COMMIT_TAG" >> $GITHUB_ENV
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
 
-          echo "Building image: $REPO_URI:$IMAGE_TAG"
-          docker build -t $REPO_URI:$IMAGE_TAG .
-          docker push $REPO_URI:$IMAGE_TAG
+      - name: Build Docker Image (with cache)
+        run: |
+          docker build \
+            --tag $REPO_URI:$COMMIT_TAG \
+            --cache-from $REPO_URI:latest \
+            .
 
-          # Optional: also tag "latest" for convenience
-          docker tag $REPO_URI:$IMAGE_TAG $REPO_URI:latest
-          docker push $REPO_URI:latest
+      - name: Push Docker Image
+        run: |
+          docker push $REPO_URI:$COMMIT_TAG
+          docker tag $REPO_URI:$COMMIT_TAG $REPO_URI:$LATEST_TAG
+          docker push $REPO_URI:$LATEST_TAG
+          if [ ! -z "$VERSION_TAG" ]; then
+            docker tag $REPO_URI:$COMMIT_TAG $REPO_URI:$VERSION_TAG
+            docker push $REPO_URI:$VERSION_TAG
+          fi
