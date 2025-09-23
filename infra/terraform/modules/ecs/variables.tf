@@ -93,7 +93,7 @@ variable "ecs_services" {
     task_definition_revision          = optional(string)
     service_name                      = string
     desired_count                     = optional(number, 1)
-    use_capacity_provider             = optional(bool, true)
+    use_capacity_provider             = optional(bool, false)
     launch_type                       = optional(string, "FARGATE") #EC2, FARGATE, and EXTERNAL
     enable_az_rebalancing             = optional(bool, true)
     enable_execute_command            = optional(bool, false)

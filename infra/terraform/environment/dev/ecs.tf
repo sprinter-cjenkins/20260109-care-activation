@@ -1,4 +1,3 @@
-
 data "aws_iam_policy_document" "ecs_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -11,7 +10,7 @@ data "aws_iam_policy_document" "ecs_assume_role" {
 }
 
 resource "aws_iam_role" "ecs_task_role" {
-  name                 = "sh-ca-ecs-dev-task-role"
+  name                 = "care-activation-${terraform.workspace}-ecs-task-role"
   description          = "This role grants permissions directly to the application code running inside your container to interact with other AWS services."
   path                 = "/"
   assume_role_policy   = data.aws_iam_policy_document.ecs_assume_role.json
@@ -19,8 +18,9 @@ resource "aws_iam_role" "ecs_task_role" {
 
   tags = {}
 }
+
 resource "aws_iam_role_policy" "ecs_task_policy" {
-  name = "sh-ca-ecs-dev-task-policy"
+  name = "care-activation-${terraform.workspace}-ecs-task-policy"
   role = aws_iam_role.ecs_task_role.id
 
   policy = jsonencode({
@@ -39,7 +39,7 @@ resource "aws_iam_role_policy" "ecs_task_policy" {
 }
 
 resource "aws_iam_role" "ecs_execution_role" {
-  name                 = "sh-ca-ecs-dev-execution-role"
+  name                 = "care-activation-${terraform.workspace}-ecs-execution-role"
   description          = "This role grants permissions to the ECS agent (or Fargate agent) to perform actions on your behalf to manage the task's lifecycle."
   path                 = "/"
   assume_role_policy   = data.aws_iam_policy_document.ecs_assume_role.json
@@ -47,18 +47,28 @@ resource "aws_iam_role" "ecs_execution_role" {
 
   tags = {}
 }
+
 resource "aws_iam_role_policy" "ecs_execution_policy" {
-  name = "sh-ca-ecs-dev-execution-policy"
+  name = "care-activation-${terraform.workspace}-ecs-execution-policy"
   role = aws_iam_role.ecs_execution_role.id
 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
+        Effect = "Allow"
         Action = [
-          "secretsmanager:GetRandomPassword",
-          "secretsmanager:ListSecrets",
-          "secretsmanager:BatchGetSecretValue",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      },
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "ssm:GetParameters",
         ]
         Effect   = "Allow"
         Resource = "*"
@@ -67,7 +77,8 @@ resource "aws_iam_role_policy" "ecs_execution_policy" {
       {
         "Action" : [
           "logs:CreateLogGroup",
-          "logs:CreateLogStream"
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
         ],
         "Effect" : "Allow",
         "Resource" : "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/*",
@@ -138,6 +149,11 @@ resource "aws_security_group" "care-activation-dev-ecs-sg" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/care-activation-${terraform.workspace}"
+  retention_in_days = 7
+}
+
 module "care-activation-dev" {
   #depends_on         = [aws_lb_target_group.ecs_target_group_https]
   source             = "../../modules/ecs"
@@ -146,75 +162,164 @@ module "care-activation-dev" {
 
   ecs_services = {
     care_activation = {
-      service_name                      = "care-activation"
-      task_definition_key               = "care_activation-dev"
-      desired_count                     = 1
-      launch_type                       = "FARGATE"
-      deployment_controller_type        = "ECS"
-      subnet_ids                        = [module.networking.ids.private_subnet_ids[0], module.networking.ids.private_subnet_ids[1], module.networking.ids.private_subnet_ids[2]]
-      security_group_ids                = [aws_security_group.care-activation-dev-ecs-sg.id]
-      assign_public_ip                  = false
+      service_name             = "care-activation-dev"
+      task_definition_key      = "care_activation-dev"
+      launch_type              = "FARGATE"
+      desired_count            = 1
+      min_capacity             = 1
+      max_capacity             = 1
+      cpu_target_value         = 50
+      use_capacity_provider    = false
+      capacity_provider_config = []
+
+      health_check_grace_period_seconds = 60
+      wait_for_steady_state             = false
       enable_execute_command            = false
+      enable_az_rebalancing             = false
+      enable_ecs_managed_tags           = true
+      propagate_tags                    = "SERVICE"
+
+      enable_alb                        = false
+      load_balancer_config              = []
       enable_alarms                     = false
       cloudwatch_alarm_names            = []
-      enable_deployment_circuit_breaker = true
-      enable_circuit_breaker_rollback   = true
-      max_capacity                      = 2
-      min_capacity                      = 1
-      cpu_target_value                  = 60
-      capacity_provider_config          = []
-      load_balancer_config              = []
+      enable_alarm_rollback             = true
+      enable_deployment_circuit_breaker = false
+      enable_circuit_breaker_rollback   = false
+      deployment_controller_type        = "ECS"
+      assign_public_ip                  = false
+      subnet_ids = [
+        module.networking.ids.private_subnet_ids[0],
+        module.networking.ids.private_subnet_ids[1],
+        module.networking.ids.private_subnet_ids[2]
+      ]
+      security_group_ids = [
+        aws_security_group.care-activation-dev-ecs-sg.id,
+        aws_security_group.care-activation-dev-subnet-app-rds-sg.id
+      ]
 
       tags = {
-        service = "care-activation"
+        service = "care-activation-dev"
         env     = terraform.workspace
       }
     }
   }
 
-
   task_definitions = {
     care_activation-dev = {
-      family                    = "care-activation"
-      network_mode              = "awsvpc"
-      launch_type               = "FARGATE"
-      cpu                       = 512
-      memory                    = 1024
-      task_role_arn             = "" # optional, can be auto-created
-      execution_role_arn        = "" # optional, can be auto-created
+      family                 = "care-activation-${terraform.workspace}"
+      launch_type            = "FARGATE"
+      cpu                    = 512
+      memory                 = 1024
+      task_role_arn          = aws_iam_role.ecs_execution_role.arn #ARN of IAM role that allows your Amazon ECS container task to make calls to other AWS services
+      execution_role_arn     = aws_iam_role.ecs_execution_role.arn #ARN of the task execution role that the Amazon ECS container agent and the Docker daemon can assume
+      enable_fault_injection = false
+
       container_definition_file = "${path.module}/templates/care_activation.json.tpl"
       container_definitions = jsonencode([
         {
-          name      = "care-activation"
-          image     = aws_ecr_repository.care_activation.repository_url
+          name      = "care-activation-${terraform.workspace}"
+          image     = "${aws_ecr_repository.care_activation.repository_url}:latest"
           essential = true
-          memory    = 1024
-          cpu       = 512
+
           portMappings = [
-            { containerPort = 3000, protocol = "tcp" }
+            {
+              containerPort = 3000
+              protocol      = "tcp"
+            }
           ]
+
           secrets = [
             {
               name      = "DATABASE_URL"
               valueFrom = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.arn
-            },
-            {
-              name      = "SHADOW_DATABASE_URL"
-              valueFrom = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.arn
             }
           ]
+
+          # Send logs to CloudWatch
+          logConfiguration = {
+            logDriver = "awslogs"
+            options = {
+              awslogs-group         = "/ecs/care-activation-${terraform.workspace}"
+              awslogs-region        = data.aws_region.current.name
+              awslogs-stream-prefix = "ecs"
+            }
+          }
         }
       ])
+
+      enable_efs             = false
       ephemeral_storage_size = 40
+      network_mode           = "awsvpc"
+      runtime_platform = {
+        cpu_architecture        = "X86_64"
+        operating_system_family = "LINUX"
+      }
       tags = {
-        service = "care-activation"
+        service = "care-activation-${terraform.workspace}"
         env     = terraform.workspace
       }
     }
   }
 
-  tags = {}
+  tags = {
+    service = "care-activation-${terraform.workspace}"
+    env     = terraform.workspace
+  }
 }
+
+resource "aws_security_group" "vpc_endpoint_sg" {
+  name        = "vpc-endpoints-sg"
+  description = "Allow ECS tasks to access VPC endpoints"
+  vpc_id      = module.networking.ids.vpc_id
+
+  ingress {
+    description     = "Allow HTTPS from ECS tasks"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.care-activation-dev-ecs-sg.id] # ECS task SG
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "vpc-endpoints-sg"
+  }
+}
+
+# Example for an ECR API VPC endpoint
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id             = module.networking.ids.vpc_id
+  service_name       = "com.amazonaws.${data.aws_region.current.name}.ecr.api"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = module.networking.ids.private_subnet_ids
+  security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
+}
+
+# ECR Docker endpoint
+resource "aws_vpc_endpoint" "ecr_docker" {
+  vpc_id             = module.networking.ids.vpc_id
+  service_name       = "com.amazonaws.${data.aws_region.current.name}.ecr.dkr"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = module.networking.ids.private_subnet_ids
+  security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
+}
+
+# Secrets Manager endpoint
+resource "aws_vpc_endpoint" "secretsmanager" {
+  vpc_id             = module.networking.ids.vpc_id
+  service_name       = "com.amazonaws.${data.aws_region.current.name}.secretsmanager"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = module.networking.ids.private_subnet_ids
+  security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
+}
+
 
 /*
 resource "aws_lb_target_group" "ecs_target_group_http" {
@@ -264,7 +369,7 @@ resource "aws_lb_target_group" "ecs_target_group_http" {
   tags = {
     "Environment" = "dev"
     "ManagedBy"   = "Terraform"
-    "Project"     = "care-activation"
+    "Project"     = "care-activation-${terraform.workspace}"
   }
 }
 resource "aws_lb_target_group" "ecs_target_group_https" {
@@ -314,7 +419,7 @@ resource "aws_lb_target_group" "ecs_target_group_https" {
   tags = {
     "Environment" = "dev"
     "ManagedBy"   = "Terraform"
-    "Project"     = "care-activation"
+    "Project"     = "care-activation-${terraform.workspace}"
   }
 }
 
