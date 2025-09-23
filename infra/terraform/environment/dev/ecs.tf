@@ -146,7 +146,7 @@ module "care-activation-dev" {
 
   ecs_services = {
     care_activation = {
-      service_name                      = "care-activation"
+      service_name                      = "care-activation-dev"
       task_definition_key               = "care_activation-dev"
       desired_count                     = 1
       launch_type                       = "FARGATE"
@@ -166,22 +166,23 @@ module "care-activation-dev" {
       load_balancer_config              = []
 
       tags = {
-        service = "care-activation"
+        service = "care-activation-dev"
         env     = terraform.workspace
       }
     }
   }
 
-
   task_definitions = {
     care_activation-dev = {
-      family                    = "care-activation"
+      family                    = "care-activation-${terraform.workspace}"
       network_mode              = "awsvpc"
       launch_type               = "FARGATE"
       cpu                       = 512
       memory                    = 1024
-      task_role_arn             = "" # optional, can be auto-created
-      execution_role_arn        = "" # optional, can be auto-created
+      task_role_arn             = aws_iam_role.ecs_execution_role.arn
+      execution_role_arn        = aws_iam_role.ecs_execution_role.arn
+      enable_fault_injection    = false
+      enable_efs                = false
       container_definition_file = "${path.module}/templates/care_activation.json.tpl"
       container_definitions = jsonencode([
         {
@@ -207,13 +208,16 @@ module "care-activation-dev" {
       ])
       ephemeral_storage_size = 40
       tags = {
-        service = "care-activation"
+        service = "care-activation-${terraform.workspace}"
         env     = terraform.workspace
       }
     }
   }
 
-  tags = {}
+  tags = {
+    service = "care-activation-${terraform.workspace}"
+    env     = terraform.workspace
+  }
 }
 
 /*
