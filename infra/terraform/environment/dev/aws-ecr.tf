@@ -20,9 +20,6 @@ resource "aws_iam_role" "ca_ecr_rw_role" {
           StringLike = {
             "token.actions.githubusercontent.com:sub" = "repo:Pulsetera/${var.resource_name}:*"
           }
-          StringNotEquals = {
-            "token.actions.githubusercontent.com:sub" = "repo:Pulsetera/${var.resource_name}:ref:refs/heads/main"
-          }
         }
       }
     ]
@@ -38,11 +35,9 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "ECRLogin"
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken"
-        ]
+        Sid      = "ECRLogin"
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
         Resource = "*"
       },
       {
@@ -57,30 +52,26 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
           "ecr:DescribeRepositories",
           "ecr:GetRepositoryPolicy"
         ]
-        Resource = "arn:aws:ecr:${data.aws_caller_identity.current.account_id}:${data.aws_region.current.name}:repository/care-activation"
+        Resource = "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/care-activation"
       },
       {
-        Sid    = "OptionalListECR"
-        Effect = "Allow"
-        Action = [
-          "ecr:ListImages",
-          "ecr:DescribeImages"
-        ]
-        Resource = "arn:aws:ecr:${data.aws_caller_identity.current.account_id}:${data.aws_region.current.name}:repository/care-activation"
+        Sid      = "OptionalListECR"
+        Effect   = "Allow"
+        Action   = ["ecr:ListImages", "ecr:DescribeImages"]
+        Resource = "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/care-activation"
       }
     ]
   })
 }
 
-# Attach Policy
 resource "aws_iam_role_policy_attachment" "github_actions_ecr_push_attachment" {
   role       = aws_iam_role.ca_ecr_rw_role.name
   policy_arn = aws_iam_policy.github_actions_ecr_push.arn
 }
 
 resource "aws_ecr_repository" "care_activation" {
-  image_tag_mutability = "MUTABLE"
   name                 = "care-activation"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -94,41 +85,46 @@ resource "aws_ecr_lifecycle_policy" "care_activation" {
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last 16 release images"
+        description  = "Keep last 16 commit images (SHA tags)"
         selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["v-care-activation"]
-          countType     = "imageCountMoreThan"
-          countNumber   = 16
+          tagStatus   = "tagged"
+          tagPrefixList = ["sha-"]
+          countType   = "imageCountMoreThan"
+          countNumber = 16
         }
-        action = {
-          type = "expire"
-        }
+        action = { type = "expire" }
       },
       {
         rulePriority = 2
-        description  = "Keep last 8 pre-release images"
+        description  = "Keep latest tag"
         selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["pre-care-activation"]
-          countType     = "imageCountMoreThan"
-          countNumber   = 8
+          tagStatus   = "tagged"
+          tagPrefixList = ["latest"]
+          countType   = "imageCountMoreThan"
+          countNumber = 1
         }
-        action = {
-          type = "expire"
-        }
+        action = { type = "expire" }
       },
       {
         rulePriority = 3
-        description  = "Catch-all for commit builds"
+        description  = "Keep release tags (v*)"
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["v"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 10
+        }
+        action = { type = "expire" }
+      },
+      {
+        rulePriority = 4
+        description  = "Catch-all for any other images"
         selection = {
           tagStatus   = "any"
           countType   = "imageCountMoreThan"
           countNumber = 64
         }
-        action = {
-          type = "expire"
-        }
+        action = { type = "expire" }
       }
     ]
   })
