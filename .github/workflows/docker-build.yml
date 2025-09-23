@@ -25,7 +25,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: >-
-            'arn:aws:iam::417107812602:role/care-activation-dev-ecr-push-role'
+            arn:aws:iam::417107812602:role/care-activation-dev-ecr-rw-role
           aws-region: us-west-2
 
       - name: Login to Amazon ECR

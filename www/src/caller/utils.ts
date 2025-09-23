@@ -81,6 +81,9 @@ export function getSummaryPrompt() {
 }
 
 export function cleanJsonString(str: string): string {
+  if (!str) {
+    return '';
+  }
   // Remove triple backticks and optional "json" label
   return str.replace(/```(json)?/g, '').trim();
 }

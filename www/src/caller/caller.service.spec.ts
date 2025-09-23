@@ -1,7 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CareTaskStatus, CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
+import {
+  CareTaskStatus,
+  CareTaskType,
+  OutreachChannel,
+  PartnerOrganization,
+  Patient,
+} from '@prisma/client';
 import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
 
 // Mock fetch globally
@@ -15,12 +21,12 @@ describe('CallerService', () => {
     id: 'patient-123',
     givenName: 'John',
     familyName: 'Doe',
-    phone: '+1234567890',
+    phoneNumber: '+1234567890',
     externalId: 'ext-123',
     birthDate: new Date('1990-01-01'),
     createdAt: new Date(),
     updatedAt: new Date(),
-    email: 'john.doe@example.com',
+    emailAddress: 'john.doe@example.com',
     metadata: {},
     partnerOrganization: PartnerOrganization.ELEVANCEHEALTH,
     timezone: 'America/New_York',
@@ -68,6 +74,9 @@ describe('CallerService', () => {
             eventResult: {
               createMany: jest.fn(),
               findMany: jest.fn(),
+            },
+            patientOptOut: {
+              findFirst: jest.fn(),
             },
           },
         },
@@ -129,7 +138,7 @@ describe('CallerService', () => {
           authorization: 'test-api-key',
         },
         body: JSON.stringify({
-          phone_number: mockPatient.phone,
+          phone_number: mockPatient.phoneNumber,
           voice: 'June',
           task: getAiTask(mockDexaTask.type),
           first_sentence: getFirstSentence(mockPatient),
@@ -142,6 +151,20 @@ describe('CallerService', () => {
         }),
       });
     });
+
+    it('should throw error when patient has opted out of phone outreach', async () => {
+      jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockDexaTask);
+      jest.spyOn(prismaService.patientOptOut, 'findFirst').mockResolvedValue({
+        id: 'opt-out-123',
+        patientId: mockPatient.id,
+        channel: OutreachChannel.PHONE,
+        createdAt: new Date(),
+      });
+
+      await expect(service.initiateCall(taskId)).rejects.toThrow(
+        'Patient has opted out of phone outreach',
+      );
+    });
   });
 
   describe('getCall', () => {
@@ -151,6 +174,7 @@ describe('CallerService', () => {
       call_id: callId,
       answered_by: 'human',
       summary: JSON.stringify({}),
+      status: 'completed',
     };
 
     const mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
