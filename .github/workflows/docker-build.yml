@@ -26,7 +26,7 @@ jobs:
         with:
           role-to-assume: >-
             arn:aws:iam::417107812602:role/care-activation-dev-ecr-rw-role
-          role-session-name: ${{ github.repository_id }}-${{ github.actor }}
+          role-session-name: gh-${{ github.repository_id }}-docker-build-${{ github.actor }}
           aws-region: us-west-2
 
       - name: Login to Amazon ECR
