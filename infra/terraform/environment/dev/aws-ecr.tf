@@ -20,9 +20,9 @@ resource "aws_iam_role" "ca_ecr_rw_role" {
           StringLike = {
             "token.actions.githubusercontent.com:sub" = "repo:Pulsetera/${var.resource_name}:*"
           }
-          StringNotEquals = {
-            "token.actions.githubusercontent.com:sub" = "repo:Pulsetera/${var.resource_name}:ref:refs/heads/main"
-          }
+          # StringNotEquals = {
+          #   "token.actions.githubusercontent.com:sub" = "repo:Pulsetera/${var.resource_name}:ref:refs/heads/main"
+          # }
         }
       }
     ]
@@ -57,7 +57,7 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
           "ecr:DescribeRepositories",
           "ecr:GetRepositoryPolicy"
         ]
-        Resource = "arn:aws:ecr:${data.aws_caller_identity.current.account_id}:${data.aws_region.current.name}:repository/care-activation"
+        Resource = "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/care-activation"
       },
       {
         Sid    = "OptionalListECR"
@@ -66,7 +66,7 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
           "ecr:ListImages",
           "ecr:DescribeImages"
         ]
-        Resource = "arn:aws:ecr:${data.aws_caller_identity.current.account_id}:${data.aws_region.current.name}:repository/care-activation"
+        Resource = "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/care-activation"
       }
     ]
   })
