@@ -25,23 +25,9 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: >-
-            ${{
-              matrix.base-environments == 'prod' &&
-              'arn:aws:iam::417107812602:role/care-activation-prod-terraform-ro-role' ||
-              'arn:aws:iam::417107812602:role/care-activation-dev-terraform-ro-role'
-            }}
+            arn:aws:iam::417107812602:role/care-activation-dev-ecr-rw-role
           role-session-name: ${{ github.repository_id }}-${{ github.actor }}
           aws-region: us-west-2
-
-      - name: Create AWS CLI profile
-        run: |
-          mkdir -p ~/.aws
-          cat <<EOF > ~/.aws/credentials
-          [${{ matrix.base-environments }}]
-          aws_access_key_id=${AWS_ACCESS_KEY_ID}
-          aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
-          aws_session_token=${AWS_SESSION_TOKEN}
-          EOF
 
       - name: Login to Amazon ECR
         id: login-ecr
