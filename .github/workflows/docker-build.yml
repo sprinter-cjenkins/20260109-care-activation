@@ -4,31 +4,34 @@ on:
   push:
     branches: [ "main" ]  # adjust as needed
 
+concurrency:
+  group: docker-build-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    permissions:
-      id-token: write   # needed for OIDC (if used)
-      contents: read
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # --- Configure AWS credentials (OIDC or Secrets) ---
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::417107812602:role/care-activation-dev-ecr-push-role
+          role-to-assume: >-
+            'arn:aws:iam::417107812602:role/care-activation-dev-ecr-push-role'
           aws-region: us-west-2
 
-      # --- Log in to Amazon ECR ---
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # --- Build, tag, and push the image ---
       - name: Build and Push Docker image
         working-directory: ./www
         run: |
