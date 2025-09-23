@@ -145,77 +145,71 @@ module "care-activation-dev" {
   enable_ecs_service = true
 
   ecs_services = {
-    care-activation-dev = {
+    care_activation = {
       service_name                      = "care-activation"
+      task_definition_key               = "care_activation-dev"
       desired_count                     = 1
-      use_capacity_provider             = true
       launch_type                       = "FARGATE"
-      enable_az_rebalancing             = false
-      enable_execute_command            = false
-      health_check_grace_period_seconds = 60
-      enable_ecs_managed_tags           = true
-      enable_alb                        = false
-      load_balancer_config              = []
-
-      # load_balancer_config = [
-      #   {
-      #     container_name   = "care-activation"
-      #     container_port   = "8443"
-      #     target_group_arn = "" #aws_lb_target_group.ecs_target_group_https.arn
-      #   },
-      #   {
-      #     container_name   = "care-activation"
-      #     container_port   = "80"
-      #     target_group_arn = ""#aws_lb_target_group.ecs_target_group_http.arn
-      #   }
-      # ]
-
-      propagate_tags        = "SERVICE"
-      wait_for_steady_state = false
-
-      enable_alarms                     = false
-      cloudwatch_alarm_names            = []
-      enable_alarm_rollback             = true
-      enable_deployment_circuit_breaker = false
-      enable_circuit_breaker_rollback   = false
       deployment_controller_type        = "ECS"
       subnet_ids                        = [module.networking.ids.private_subnet_ids[0], module.networking.ids.private_subnet_ids[1], module.networking.ids.private_subnet_ids[2]]
       security_group_ids                = [aws_security_group.care-activation-dev-ecs-sg.id]
       assign_public_ip                  = false
-      max_capacity                      = 1
+      enable_execute_command            = false
+      enable_alarms                     = false
+      cloudwatch_alarm_names            = []
+      enable_deployment_circuit_breaker = true
+      enable_circuit_breaker_rollback   = true
+      max_capacity                      = 2
       min_capacity                      = 1
-      cpu_target_value                  = 50
+      cpu_target_value                  = 60
       capacity_provider_config          = []
-      tags                              = {}
+      load_balancer_config              = []
+
+      tags = {
+        service = "care-activation"
+        env     = terraform.workspace
+      }
     }
   }
 
+
   task_definitions = {
-    care-activation-dev = {
-      family                 = "care-activation-dev"
-      network_mode           = "awsvpc"
-      launch_type            = "FARGATE"
-      cpu                    = 2048
-      memory                 = 8192
-      task_role_arn          = aws_iam_role.ecs_execution_role.arn
-      execution_role_arn     = aws_iam_role.ecs_execution_role.arn
-      enable_fault_injection = false
-      container_definitions  = null
-
-      container_definition_file = "${path.module}/jsonFiles/care-activation-dev.json"
-      container_template_vars = {
-        environment    = terraform.workspace
-        aws_account_id = data.aws_caller_identity.current.account_id
-        region         = data.aws_region.current.name
-      }
-
-      enable_efs             = false
+    care_activation-dev = {
+      family                    = "care-activation"
+      network_mode              = "awsvpc"
+      launch_type               = "FARGATE"
+      cpu                       = 512
+      memory                    = 1024
+      task_role_arn             = "" # optional, can be auto-created
+      execution_role_arn        = "" # optional, can be auto-created
+      container_definition_file = "${path.module}/templates/care_activation.json.tpl"
+      container_definitions = jsonencode([
+        {
+          name      = "care-activation"
+          image     = aws_ecr_repository.care_activation.repository_url
+          essential = true
+          memory    = 1024
+          cpu       = 512
+          portMappings = [
+            { containerPort = 3000, protocol = "tcp" }
+          ]
+          secrets = [
+            {
+              name      = "DATABASE_URL"
+              valueFrom = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.arn
+            },
+            {
+              name      = "SHADOW_DATABASE_URL"
+              valueFrom = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.arn
+            }
+          ]
+        }
+      ])
       ephemeral_storage_size = 40
-      runtime_platform = {
-        cpu_architecture        = "ARM64"
-        operating_system_family = "LINUX"
+      tags = {
+        service = "care-activation"
+        env     = terraform.workspace
       }
-      tags = {}
     }
   }
 

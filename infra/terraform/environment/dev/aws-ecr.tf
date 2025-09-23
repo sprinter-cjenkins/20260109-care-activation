@@ -87,10 +87,10 @@ resource "aws_ecr_lifecycle_policy" "care_activation" {
         rulePriority = 1
         description  = "Keep last 16 commit images (SHA tags)"
         selection = {
-          tagStatus   = "tagged"
+          tagStatus     = "tagged"
           tagPrefixList = ["sha-"]
-          countType   = "imageCountMoreThan"
-          countNumber = 16
+          countType     = "imageCountMoreThan"
+          countNumber   = 16
         }
         action = { type = "expire" }
       },
@@ -98,10 +98,10 @@ resource "aws_ecr_lifecycle_policy" "care_activation" {
         rulePriority = 2
         description  = "Keep latest tag"
         selection = {
-          tagStatus   = "tagged"
+          tagStatus     = "tagged"
           tagPrefixList = ["latest"]
-          countType   = "imageCountMoreThan"
-          countNumber = 1
+          countType     = "imageCountMoreThan"
+          countNumber   = 1
         }
         action = { type = "expire" }
       },
