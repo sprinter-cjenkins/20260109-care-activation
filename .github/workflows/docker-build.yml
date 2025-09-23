@@ -16,8 +16,8 @@ permissions:
   id-token: write
 
 jobs:
-  build:
-    name: Build & Deploy Docker Image #to ECS
+  deploy:
+    name: Build, Push Docker & Upload Artifacts
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -72,3 +72,40 @@ jobs:
             docker tag $REPO_URI:$COMMIT_TAG $REPO_URI:$VERSION_TAG
             docker push $REPO_URI:$VERSION_TAG
           fi
+
+#      - name: Save Docker image metadata to file
+#        run: |
+#          mkdir -p ../artifacts
+#          echo "IMAGE_SHA=$COMMIT_TAG" > ../artifacts/image-info.txt
+#          echo "IMAGE_LATEST=$LATEST_TAG" >> ../artifacts/image-info.txt
+#          if [ ! -z "$VERSION_TAG" ]; then
+#            echo "IMAGE_VERSION=$VERSION_TAG" >> ../artifacts/image-info.txt
+#          fi
+#
+#      - name: Upload artifacts to S3
+#        run: |
+#          aws s3 cp ../artifacts/image-info.txt s3://my-build-artifacts/care-activation/${GITHUB_SHA}/image-info.txt \
+#            --region us-west-2
+#          # Optional: set lifecycle for 90-day retention
+#          aws s3api put-object-lock-configuration \
+#            --bucket my-build-artifacts \
+#            --object-lock-configuration '{
+#              "ObjectLockEnabled": "Enabled",
+#              "Rule": {
+#                "DefaultRetention": {
+#                  "Mode": "GOVERNANCE",
+#                  "Days": 90
+#                }
+#              }
+#            }'
+#
+#      - name: Notify Slack
+#        if: always()
+#        uses: slackapi/slack-github-action@v1.26.0
+#        with:
+#          channel-id: "#deployments"
+#          text: |
+#            ${{ github.repository }} - Deployment ${{ job.status }}.
+#            Commit: ${{ github.sha }}
+#        env:
+#          SLACK_BOT_TOKEN: ${{ secrets.SLACK_WEBHOOK_URL }}
