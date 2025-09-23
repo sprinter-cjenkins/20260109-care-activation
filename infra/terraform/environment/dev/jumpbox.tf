@@ -72,6 +72,11 @@ resource "aws_instance" "ssm_ec2" {
     Name        = "care-activation-${terraform.workspace}-ssm-ec2"
     Environment = terraform.workspace
   }
+  lifecycle {
+    ignore_changes = [
+      user_data
+    ]
+  }
 }
 
 # Data source for latest Amazon Linux 2 AMI
