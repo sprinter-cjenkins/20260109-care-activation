@@ -8,6 +8,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
+import type { Request } from 'express';
+// import { ElevenLabsProvider } from './providers/eleven-labs.provider';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -94,6 +96,9 @@ export class CallerService {
 
   async updateCallEvent(data: CallResult): Promise<void> {
     const { callId, answeredBy, summary } = data;
+    if (!callId) {
+      throw new Error('Call ID not found');
+    }
     const callEventId = await this.prisma.careTaskEvent.findFirstOrThrow({
       where: { externalId: callId },
     });
@@ -161,12 +166,10 @@ export class CallerService {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async handleWebhook(payload: any): Promise<void> {
-    this.logger.log('Received webhook:', payload);
+  async handleWebhook(request: Request): Promise<void> {
+    this.logger.log('Received webhook:', request.body);
 
-    const parsedData = this.callerProvider.parseWebhook(payload);
-
+    const parsedData = await this.callerProvider.parseWebhook(request);
     await this.updateCallEvent(parsedData);
   }
 }

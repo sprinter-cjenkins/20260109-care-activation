@@ -1,4 +1,5 @@
 import { CareTaskType, Patient } from '@prisma/client';
+import type { Request } from 'express';
 
 export interface CallResult {
   callId: string;
@@ -20,6 +21,5 @@ export interface CallInitiationRequest {
 export interface CallerProvider {
   initiateCall: (request: CallInitiationRequest) => Promise<CallResult>;
   getCall: (callId: string) => Promise<CallResult>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseWebhook: (payload: any) => CallResult;
+  parseWebhook: (request: Request) => Promise<CallResult>;
 }
