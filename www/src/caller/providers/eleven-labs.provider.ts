@@ -4,16 +4,37 @@ import type { Request } from 'express';
 import { CallerService } from '../caller.service';
 
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
-import { GetConversationResponseModel } from '@elevenlabs/elevenlabs-js/api';
+import type {
+  GetConversationResponseModelStatus,
+  ConversationHistoryTranscriptCommonModelOutput,
+  ConversationInitiationClientDataRequestOutput,
+  ConversationHistoryMetadataCommonModel,
+  ConversationHistoryAnalysisCommonModel,
+} from '@elevenlabs/elevenlabs-js/api';
 
 const DEXA_AGENT_ID = 'agent_4601k5s8m9bteq4vytedj4h4gheq';
 const DEXA_PHONE_ID = 'phnum_4001k5vwz9wbe0t8jxdpbqx48wyv';
+
+interface GetConversationResponse {
+  agent_id: string;
+  conversation_id: string;
+  status: GetConversationResponseModelStatus;
+  userId?: string;
+  transcript: ConversationHistoryTranscriptCommonModelOutput[];
+  metadata: ConversationHistoryMetadataCommonModel;
+  analysis?: ConversationHistoryAnalysisCommonModel;
+  conversationInitiationClientData?: ConversationInitiationClientDataRequestOutput;
+  hasAudio: boolean;
+  hasUserAudio: boolean;
+  hasResponseAudio: boolean;
+}
 
 @Injectable()
 export class ElevenLabsProvider implements CallerProvider {
   name: string = 'eleven-labs';
   private readonly logger = new Logger(CallerService.name);
   private readonly elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
+  private readonly elevenLabsApiUrl = 'https://api.elevenlabs.io/v1';
 
   private readonly client = new ElevenLabsClient({
     apiKey: this.elevenLabsApiKey,
@@ -26,27 +47,61 @@ export class ElevenLabsProvider implements CallerProvider {
 
     const { patient } = request;
 
+    const dynamicVariables = {
+      user_given_name: patient.givenName,
+      user_family_name: patient.familyName,
+      user_plan_name: patient.partnerOrganization,
+    };
+
+    const toolOverrides = {
+      voicemail_detection: {
+        message: `Hi, ${patient.givenName} ${patient.familyName}. This is June from Sprinter Health calling on behalf of ${patient.partnerOrganization}. Just calling to follow up on scheduling your DEXA scan. Please give us a call back when you can.`,
+      },
+    };
+
     try {
-      const response = await this.client.conversationalAi.twilio.outboundCall({
-        agentId: DEXA_AGENT_ID,
-        agentPhoneNumberId: DEXA_PHONE_ID,
-        toNumber: patient.phoneNumber,
-        conversationInitiationClientData: {
-          dynamicVariables: {
-            user_given_name: patient.givenName,
-            user_family_name: patient.familyName,
-            user_plan_name: patient.partnerOrganization,
-          },
+      //   const response = await this.client.conversationalAi.twilio.outboundCall({
+      //     agentId: DEXA_AGENT_ID,
+      //     agentPhoneNumberId: DEXA_PHONE_ID,
+      //     toNumber: patient.phoneNumber,
+      //     conversationInitiationClientData: {
+      //       dynamicVariables: {
+      //         user_given_name: patient.givenName,
+      //         user_family_name: patient.familyName,
+      //         user_plan_name: patient.partnerOrganization,
+      //       },
+      //       toolOverrides: {
+      //         voicemail_detection: {},
+      //       },
+      //     },
+      //   });
+
+      const response = await fetch(`${this.elevenLabsApiUrl}/convai/twilio/outbound-call`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': this.elevenLabsApiKey,
         },
+        body: JSON.stringify({
+          agent_id: DEXA_AGENT_ID,
+          agent_phone_number_id: DEXA_PHONE_ID,
+          to_number: patient.phoneNumber,
+          conversation_initiation_client_data: {
+            dynamic_variables: dynamicVariables,
+            tool_overrides: toolOverrides,
+          },
+        }),
       });
 
-      if (!response.conversationId) {
+      const data = (await response.json()) as GetConversationResponse;
+      console.log('data', data);
+      if (!data.conversation_id) {
         throw new Error('Failed to initiate call: No conversation ID returned');
       }
 
       return {
         status: 'initiated',
-        callId: response.conversationId,
+        callId: data.conversation_id,
       };
     } catch (error) {
       throw new Error(
@@ -64,6 +119,8 @@ export class ElevenLabsProvider implements CallerProvider {
 
     try {
       const response = await this.client.conversationalAi.conversations.get(conversationId);
+      console.log('response', response);
+      console.log('tools used', response.metadata.featuresUsage);
       let mappedStatus: 'initiated' | 'completed' | 'failed';
       switch (response.status) {
         case 'initiated':
@@ -96,7 +153,7 @@ export class ElevenLabsProvider implements CallerProvider {
     }
   }
 
-  parseElevenLabsResponse(response: GetConversationResponseModel): CallResult {
+  parseElevenLabsResponse(response: GetConversationResponse): CallResult {
     let mappedStatus: 'initiated' | 'completed' | 'failed';
     switch (response.status) {
       case 'initiated':
@@ -120,8 +177,7 @@ export class ElevenLabsProvider implements CallerProvider {
 
     return {
       // TODO get real typing
-      // @ts-expect-error ElevenLabs response type is not consistent
-      callId: (response.conversationId || response.conversation_id) as string,
+      callId: response.conversation_id,
       status: mappedStatus,
       answeredBy: answeredBy as 'human' | 'voicemail',
     };
@@ -140,7 +196,7 @@ export class ElevenLabsProvider implements CallerProvider {
       const parsedBody = (req.body as Buffer).toString('utf8');
 
       // TODO get real typing
-      const data = (JSON.parse(parsedBody) as { data: GetConversationResponseModel }).data;
+      const data = (JSON.parse(parsedBody) as { data: GetConversationResponse }).data;
       return this.parseElevenLabsResponse(data);
     } catch (error) {
       throw new Error(
