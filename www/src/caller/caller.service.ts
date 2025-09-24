@@ -9,7 +9,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
-import { ElevenLabsProvider } from './providers/eleven-labs.provider';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -21,7 +20,7 @@ export class CallerService {
   private readonly callerProvider: CallerProvider;
 
   constructor(private readonly prisma: PrismaService) {
-    this.callerProvider = new ElevenLabsProvider();
+    this.callerProvider = new BlandAIProvider();
   }
 
   async initiateCall(taskId: string): Promise<APICallResult> {

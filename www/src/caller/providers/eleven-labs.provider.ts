@@ -60,22 +60,6 @@ export class ElevenLabsProvider implements CallerProvider {
     };
 
     try {
-      //   const response = await this.client.conversationalAi.twilio.outboundCall({
-      //     agentId: DEXA_AGENT_ID,
-      //     agentPhoneNumberId: DEXA_PHONE_ID,
-      //     toNumber: patient.phoneNumber,
-      //     conversationInitiationClientData: {
-      //       dynamicVariables: {
-      //         user_given_name: patient.givenName,
-      //         user_family_name: patient.familyName,
-      //         user_plan_name: patient.partnerOrganization,
-      //       },
-      //       toolOverrides: {
-      //         voicemail_detection: {},
-      //       },
-      //     },
-      //   });
-
       const response = await fetch(`${this.elevenLabsApiUrl}/convai/twilio/outbound-call`, {
         method: 'POST',
         headers: {
@@ -94,7 +78,7 @@ export class ElevenLabsProvider implements CallerProvider {
       });
 
       const data = (await response.json()) as GetConversationResponse;
-      console.log('data', data);
+
       if (!data.conversation_id) {
         throw new Error('Failed to initiate call: No conversation ID returned');
       }
@@ -115,12 +99,9 @@ export class ElevenLabsProvider implements CallerProvider {
       throw new Error('ELEVEN_LABS_API_KEY environment variable not set');
     }
 
-    console.log(`Getting call status for conversation ${conversationId}`);
-
     try {
       const response = await this.client.conversationalAi.conversations.get(conversationId);
-      console.log('response', response);
-      console.log('tools used', response.metadata.featuresUsage);
+
       let mappedStatus: 'initiated' | 'completed' | 'failed';
       switch (response.status) {
         case 'initiated':
