@@ -140,18 +140,18 @@ export class BlandAIProvider implements CallerProvider {
     return { call_id, answered_by, summary: parsedSummary };
   }
 
-  async parseWebhook(request: Request): Promise<CallResult> {
-    const body = JSON.parse(request.body.toString('utf8')) as BlandAIResponse;
+  parseWebhook(request: Request): Promise<CallResult> {
+    const body = JSON.parse((request.body as Buffer).toString('utf8')) as BlandAIResponse;
     const parsedData = this.parseBlandAIResponse(body);
     const answeredBy =
       parsedData.answered_by === 'human' || parsedData.answered_by === 'voicemail'
         ? parsedData.answered_by
         : undefined;
-    return {
+    return Promise.resolve({
       callId: parsedData.call_id,
       status: parsedData.answered_by != null ? 'completed' : 'initiated',
       summary: parsedData.summary,
       answeredBy,
-    };
+    });
   }
 }

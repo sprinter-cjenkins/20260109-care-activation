@@ -49,7 +49,9 @@ export class ElevenLabsProvider implements CallerProvider {
         callId: response.conversationId,
       };
     } catch (error) {
-      throw new Error('Failed to initiate call: ', error);
+      throw new Error(
+        `Failed to initiate call: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -62,7 +64,7 @@ export class ElevenLabsProvider implements CallerProvider {
 
     try {
       const response = await this.client.conversationalAi.conversations.get(conversationId);
-      let mappedStatus;
+      let mappedStatus: 'initiated' | 'completed' | 'failed';
       switch (response.status) {
         case 'initiated':
         case 'in-progress':
@@ -78,22 +80,24 @@ export class ElevenLabsProvider implements CallerProvider {
       }
       const voicemailToolUsed = response.metadata.featuresUsage?.voicemailDetection?.used;
 
-      let answeredBy = 'human';
+      let answeredBy: 'human' | 'voicemail' = 'human';
       if (voicemailToolUsed) {
         answeredBy = 'voicemail';
       }
       return {
         callId: conversationId,
         status: mappedStatus,
-        answeredBy: answeredBy as 'human' | 'voicemail',
+        answeredBy,
       };
     } catch (error) {
-      throw new Error('Failed to get call status: ', error);
+      throw new Error(
+        `Failed to get call status: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
   parseElevenLabsResponse(response: GetConversationResponseModel): CallResult {
-    let mappedStatus;
+    let mappedStatus: 'initiated' | 'completed' | 'failed';
     switch (response.status) {
       case 'initiated':
       case 'in-progress':
@@ -115,8 +119,9 @@ export class ElevenLabsProvider implements CallerProvider {
     }
 
     return {
-      // @ts-ignore
-      callId: response.conversationId || response.conversation_id,
+      // TODO get real typing
+      // @ts-expect-error ElevenLabs response type is not consistent
+      callId: (response.conversationId || response.conversation_id) as string,
       status: mappedStatus,
       answeredBy: answeredBy as 'human' | 'voicemail',
     };
@@ -132,11 +137,15 @@ export class ElevenLabsProvider implements CallerProvider {
 
     try {
       await this.client.webhooks.constructEvent(req.body, headers, secret);
-      const parsedBody = req.body.toString('utf8');
-      const data = JSON.parse(parsedBody).data as GetConversationResponseModel;
+      const parsedBody = (req.body as Buffer).toString('utf8');
+
+      // TODO get real typing
+      const data = (JSON.parse(parsedBody) as { data: GetConversationResponseModel }).data;
       return this.parseElevenLabsResponse(data);
     } catch (error) {
-      throw new Error('Failed to parse ElevenLabs webhook: ', error);
+      throw new Error(
+        `Failed to parse ElevenLabs webhook: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }
