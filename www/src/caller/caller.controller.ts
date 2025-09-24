@@ -1,5 +1,6 @@
-import { Controller, Post, Param, HttpCode, HttpStatus, Get, Body } from '@nestjs/common';
+import { Controller, Post, Param, HttpCode, HttpStatus, Get, Req } from '@nestjs/common';
 import { CallerService, APICallResult } from './caller.service';
+import type { Request } from 'express';
 
 @Controller('caller')
 export class CallerController {
@@ -18,10 +19,9 @@ export class CallerController {
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async handleWebhook(@Body() payload: any): Promise<{ status: string }> {
+  async handleWebhook(@Req() req: Request): Promise<{ status: string }> {
     try {
-      await this.callerService.handleWebhook(payload);
+      await this.callerService.handleWebhook(req);
       return { status: 'ok' };
     } catch (error) {
       console.error('Failed to handle webhook:', error);
