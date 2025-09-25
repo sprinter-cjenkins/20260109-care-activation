@@ -63,7 +63,7 @@ resource "aws_iam_policy" "github_actions_ecr_push" {
         Action   = ["ecr:ListImages", "ecr:DescribeImages"]
         Resource = [
           "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/care-activation",
-          "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/care-activation"
+          "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/care-activation-datadog"
         ]
       }
     ]
