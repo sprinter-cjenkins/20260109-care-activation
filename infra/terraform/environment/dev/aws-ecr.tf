@@ -78,6 +78,15 @@ resource "aws_ecr_repository" "care_activation" {
   }
 }
 
+resource "aws_ecr_repository" "care_activation" {
+  name                 = "care-activation-datadog"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 resource "aws_ecr_lifecycle_policy" "care_activation" {
   repository = aws_ecr_repository.care_activation.name
 
