@@ -136,7 +136,7 @@ resource "aws_kms_alias" "care-activation-mysql-dev-kms-alias" {
   target_key_id = aws_kms_key.care-activation-mysql-dev-kms-key.id
 }
 
-resource "aws_db_parameter_group" "care-activation-mysql-dev-ssl" {
+resource "aws_db_parameter_group" "care-activation-dev-mysql-ssl" {
   name        = "care-activation-${terraform.workspace}-mysql8-ssl"
   family      = "mysql8.0"
   description = "MySQL 8.0 parameter group enforcing SSL connections"
@@ -171,7 +171,7 @@ resource "aws_db_instance" "dev_mysql" {
   delete_automated_backups            = true
   iam_database_authentication_enabled = true
   network_type                        = "IPV4"
-  parameter_group_name                = aws_db_parameter_group.care-activation-mysql-dev-ssl.name
+  parameter_group_name                = aws_db_parameter_group.care-activation-dev-mysql-ssl.name
   #performance_insights_retention_period = 7
   #performance_insights_kms_key_id       = aws_kms_key.care-activation-mysql-dev-kms-key.arn
   #performance_insights_enabled          = true
