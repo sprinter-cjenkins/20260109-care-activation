@@ -349,7 +349,7 @@ resource "aws_lb_listener" "care-activation-dev-https" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = "arn:aws:acm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:certificate/eae0c95e-ab2f-4ee1-946f-aa1098a8e267"
+  certificate_arn   = "arn:aws:acm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:certificate/2ec2d73e-f080-400d-8b4e-1a2dcedda62b"
 
   default_action {
     type = "forward"
