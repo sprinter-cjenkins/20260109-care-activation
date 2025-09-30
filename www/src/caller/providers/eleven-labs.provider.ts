@@ -12,8 +12,8 @@ import type {
   ConversationHistoryAnalysisCommonModel,
 } from '@elevenlabs/elevenlabs-js/api';
 
-const DEXA_AGENT_ID = 'agent_4601k5s8m9bteq4vytedj4h4gheq';
-const DEXA_PHONE_ID = 'phnum_4001k5vwz9wbe0t8jxdpbqx48wyv';
+const DEXA_AGENT_ID = 'agent_8401k69cr8xmfzdb1sx8h3w5hf2x';
+const DEXA_PHONE_ID = 'phnum_8301k63sx1zbfd9b07j8ky8cfk28';
 
 interface GetConversationResponse {
   agent_id: string;
@@ -53,12 +53,6 @@ export class ElevenLabsProvider implements CallerProvider {
       user_plan_name: patient.partnerOrganization,
     };
 
-    const toolOverrides = {
-      voicemail_detection: {
-        message: `Hi, ${patient.givenName} ${patient.familyName}. This is June from Sprinter Health calling on behalf of ${patient.partnerOrganization}. Just calling to follow up on scheduling your DEXA scan. Please give us a call back when you can.`,
-      },
-    };
-
     try {
       const response = await fetch(`${this.elevenLabsApiUrl}/convai/twilio/outbound-call`, {
         method: 'POST',
@@ -72,7 +66,6 @@ export class ElevenLabsProvider implements CallerProvider {
           to_number: patient.phoneNumber,
           conversation_initiation_client_data: {
             dynamic_variables: dynamicVariables,
-            tool_overrides: toolOverrides,
           },
         }),
       });
@@ -102,6 +95,7 @@ export class ElevenLabsProvider implements CallerProvider {
     try {
       const response = await this.client.conversationalAi.conversations.get(conversationId);
 
+      console.log('response', response?.analysis?.dataCollectionResults);
       let mappedStatus: 'initiated' | 'completed' | 'failed';
       switch (response.status) {
         case 'initiated':
