@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
-import { ElevenLabsProvider } from './providers/eleven-labs.provider';
+// import { ElevenLabsProvider } from './providers/eleven-labs.provider';
 
 export interface APICallResult extends CallResult {
   message: string;
