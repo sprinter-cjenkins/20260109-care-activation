@@ -23,11 +23,11 @@ data "aws_iam_policy_document" "assume_role" {
     actions = ["sts:AssumeRole"]
     principals {
       identifiers = ["arn:aws:iam::956993596390:role/scanner"]
-      type = "AWS"
+      type        = "AWS"
     }
     condition {
-      test = "StringEquals"
-      values = ["BAD69A41ACAD9BA"]
+      test     = "StringEquals"
+      values   = ["BAD69A41ACAD9BA"]
       variable = "sts:ExternalId"
     }
   }
