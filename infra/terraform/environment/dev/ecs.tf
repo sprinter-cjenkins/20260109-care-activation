@@ -231,7 +231,7 @@ module "care-activation-dev" {
 
           portMappings = [
             {
-              containerPort = 3000
+              containerPort = 443
               protocol      = "tcp"
             }
           ]
@@ -327,6 +327,17 @@ resource "aws_vpc_endpoint" "secretsmanager" {
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
 }
 
+resource "aws_acm_certificate" "care_activation" {
+  domain_name       = "careactivation.sprinterhealth.com"               # replace with your domain
+  validation_method = "DNS"
+
+  subject_alternative_names = []
+
+  tags = {
+    Environment = terraform.workspace
+    Project     = "care-activation"
+  }
+}
 
 resource "aws_lb_listener" "care-activation-dev-http" {
   load_balancer_arn = aws_lb.care-activation-dev.arn
@@ -349,7 +360,7 @@ resource "aws_lb_listener" "care-activation-dev-https" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = "arn:aws:acm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:certificate/2ec2d73e-f080-400d-8b4e-1a2dcedda62b"
+  certificate_arn   = aws_acm_certificate.care_activation.arn
 
   default_action {
     type = "forward"
