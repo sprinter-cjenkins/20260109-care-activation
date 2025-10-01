@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   CareTaskEventStatus,
   CareTaskEventType,
@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
+import { LoggerService } from '../logger/logger.service';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -16,11 +17,12 @@ export interface APICallResult extends CallResult {
 
 @Injectable()
 export class CallerService {
-  private readonly logger = new Logger(CallerService.name);
   private readonly callerProvider: CallerProvider;
 
+  private readonly logger: LoggerService;
   constructor(private readonly prisma: PrismaService) {
-    this.callerProvider = new BlandAIProvider();
+    this.logger = new LoggerService(CallerService.name);
+    this.callerProvider = new BlandAIProvider(this.logger);
   }
 
   async initiateCall(taskId: string): Promise<APICallResult> {

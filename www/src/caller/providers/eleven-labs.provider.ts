@@ -1,5 +1,5 @@
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 import { CallerService } from '../caller.service';
 
@@ -11,6 +11,7 @@ import type {
   ConversationHistoryMetadataCommonModel,
   ConversationHistoryAnalysisCommonModel,
 } from '@elevenlabs/elevenlabs-js/api';
+import { LoggerService } from '../../logger/logger.service';
 
 const DEXA_AGENT_ID = 'agent_4601k5s8m9bteq4vytedj4h4gheq';
 const DEXA_PHONE_ID = 'phnum_4001k5vwz9wbe0t8jxdpbqx48wyv';
@@ -32,9 +33,13 @@ interface GetConversationResponse {
 @Injectable()
 export class ElevenLabsProvider implements CallerProvider {
   name: string = 'eleven-labs';
-  private readonly logger = new Logger(CallerService.name);
+  private readonly logger: LoggerService;
   private readonly elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
   private readonly elevenLabsApiUrl = 'https://api.elevenlabs.io/v1';
+
+  constructor(logger: LoggerService) {
+    this.logger = logger;
+  }
 
   private readonly client = new ElevenLabsClient({
     apiKey: this.elevenLabsApiKey,
