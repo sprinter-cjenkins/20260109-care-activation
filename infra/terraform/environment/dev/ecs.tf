@@ -165,9 +165,9 @@ module "care-activation-dev" {
       service_name             = "care-activation-dev"
       task_definition_key      = "care_activation-dev"
       launch_type              = "FARGATE"
-      desired_count            = 1
-      min_capacity             = 1
-      max_capacity             = 1
+      desired_count            = 3
+      min_capacity             = 3
+      max_capacity             = 6
       cpu_target_value         = 50
       use_capacity_provider    = false
       capacity_provider_config = []
@@ -184,7 +184,7 @@ module "care-activation-dev" {
         {
           target_group_arn = aws_lb_target_group.ecs_target_group_https.arn
           container_name   = "care-activation-${terraform.workspace}" # must match container name in task definition
-          container_port   = 443
+          container_port   = 3000
         }
       ]
 
@@ -231,7 +231,7 @@ module "care-activation-dev" {
 
           portMappings = [
             {
-              containerPort = 443
+              containerPort = 3000
               protocol      = "tcp"
             }
           ]
@@ -328,7 +328,7 @@ resource "aws_vpc_endpoint" "secretsmanager" {
 }
 
 resource "aws_acm_certificate" "care_activation" {
-  domain_name       = "careactivation.sprinterhealth.com"               # replace with your domain
+  domain_name       = "careactivation.sprinterhealth.com" # replace with your domain
   validation_method = "DNS"
 
   subject_alternative_names = []
@@ -375,7 +375,7 @@ resource "aws_lb_listener" "care-activation-dev-https" {
 }
 resource "aws_lb_target_group" "ecs_target_group_https" {
   name        = "care-activation-tg-443"
-  port        = 443
+  port        = 3000
   protocol    = "HTTPS"
   target_type = "ip"
   vpc_id      = module.networking.ids.vpc_id
