@@ -386,14 +386,14 @@ resource "aws_lb_listener" "care-activation-dev-https" {
 }
 resource "aws_lb_target_group" "ecs_target_group_https" {
   name        = "care-activation-tg-443"
-  port        = 3000
+  port        = 443
   protocol    = "HTTPS"
   target_type = "ip"
   vpc_id      = module.networking.ids.vpc_id
 
   health_check {
     enabled             = true
-    path                = "/"
+    path                = "/health"
     port                = "traffic-port"
     protocol            = "HTTPS"
     matcher             = "200-499"
