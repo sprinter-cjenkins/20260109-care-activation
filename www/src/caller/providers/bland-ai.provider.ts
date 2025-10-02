@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
-import { CallerService } from '../caller.service';
-import { LoggerService } from '../../logger/logger.service';
+import { LoggerNoPHI } from '../../logger/logger';
 import { getAiTask } from '../utils';
 import { cleanJsonString, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from '../utils';
 import type { Request } from 'express';
@@ -36,9 +35,9 @@ export class BlandAIProvider implements CallerProvider {
   private readonly blandApiKey = process.env.BLAND_AI_API_KEY;
   private readonly blandApiUrl = 'https://api.bland.ai/v1';
 
-  private readonly logger: LoggerService;
+  private readonly logger: LoggerNoPHI;
 
-  constructor(logger: LoggerService) {
+  constructor(logger: LoggerNoPHI) {
     this.logger = logger;
   }
 

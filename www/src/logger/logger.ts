@@ -1,55 +1,57 @@
-import { Injectable, LoggerService as NestLoggerService, Logger } from '@nestjs/common';
+import { LoggerService as NestLoggerService, Logger } from '@nestjs/common';
 import tracer from 'dd-trace';
 
-@Injectable()
-export class LoggerService implements NestLoggerService {
+export class LoggerNoPHI implements NestLoggerService {
   private readonly localLogger: Logger;
-  private readonly serviceName: string;
+  private readonly source: string;
 
-  constructor(serviceName: string) {
+  constructor(source: string) {
     // Initialize local logger
-    this.localLogger = new Logger(serviceName);
-    this.serviceName = serviceName;
+    this.localLogger = new Logger(source);
+    this.source = source;
   }
 
   log(message: any, context?: string) {
-    // Always log locally
-    this.localLogger.log(message, context);
-
     // Send to external service (only in production or when explicitly enabled)
     if (process.env.NODE_ENV === 'production') {
-      this.sendToExternalService('info', message, this.serviceName, context);
+      this.sendToExternalService('info', message, this.source, context);
+    } else {
+      this.localLogger.log(message, context);
     }
   }
 
   error(message: any, trace?: string, context?: string) {
-    this.localLogger.error(message, trace, context);
-
     if (process.env.NODE_ENV === 'production') {
-      this.sendToExternalService('error', message, this.serviceName, context, trace);
+      this.sendToExternalService('error', message, this.source, context, trace);
+    } else {
+      this.localLogger.error(message, trace, context);
     }
   }
 
   warn(message: any, context?: string) {
-    this.localLogger.warn(message, context);
-
     if (process.env.NODE_ENV === 'production') {
-      this.sendToExternalService('warn', message, this.serviceName, context);
+      this.sendToExternalService('warn', message, this.source, context);
+    } else {
+      this.localLogger.warn(message, context);
     }
   }
 
   debug(message: any, context?: string) {
-    this.localLogger.debug(message, context);
+    if (process.env.NODE_ENV !== 'production') {
+      this.localLogger.debug(message, context);
+    }
   }
 
   verbose(message: any, context?: string) {
-    this.localLogger.verbose(message, context);
+    if (process.env.NODE_ENV !== 'production') {
+      this.localLogger.verbose(message, context);
+    }
   }
 
   private sendToExternalService(
     level: string,
     message: any,
-    serviceName: string,
+    source: string,
     context?: string,
     trace?: string,
   ) {
@@ -60,7 +62,8 @@ export class LoggerService implements NestLoggerService {
         message: typeof message === 'string' ? message : JSON.stringify(message),
         context,
         timestamp: new Date().toISOString(),
-        service: serviceName,
+        source: source,
+        service: 'care-activation',
         env: process.env.NODE_ENV || 'development',
         ...(span && {
           trace_id: span.context().toTraceId(),
@@ -72,7 +75,7 @@ export class LoggerService implements NestLoggerService {
       // Send metrics to external service
       tracer.dogstatsd.increment('app.logs.count', 1, {
         level,
-        service: logData.service,
+        source: logData.source,
         env: logData.env,
       });
 

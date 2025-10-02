@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerNoPHI } from '../logger/logger';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -19,9 +19,9 @@ export interface APICallResult extends CallResult {
 export class CallerService {
   private readonly callerProvider: CallerProvider;
 
-  private readonly logger: LoggerService;
+  private readonly logger: LoggerNoPHI;
   constructor(private readonly prisma: PrismaService) {
-    this.logger = new LoggerService(CallerService.name);
+    this.logger = new LoggerNoPHI(CallerService.name);
     this.callerProvider = new BlandAIProvider(this.logger);
   }
 
@@ -77,7 +77,6 @@ export class CallerService {
   }
 
   async getCall(callId: string): Promise<APICallResult> {
-    this.logger.log(`Getting status for call ${callId}`);
     try {
       const result = await this.callerProvider.getCall(callId);
       await this.updateCallEvent(result);
