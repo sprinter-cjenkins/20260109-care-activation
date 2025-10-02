@@ -196,8 +196,8 @@ module "care-activation-dev" {
       enable_alarms                     = false
       cloudwatch_alarm_names            = []
       enable_alarm_rollback             = true
-      enable_deployment_circuit_breaker = false
-      enable_circuit_breaker_rollback   = false
+      enable_deployment_circuit_breaker = true
+      enable_circuit_breaker_rollback   = true
       deployment_controller_type        = "ECS"
       assign_public_ip                  = false
       subnet_ids = [
@@ -230,9 +230,9 @@ module "care-activation-dev" {
       container_definition_file = "${path.module}/templates/care_activation.json.tpl"
       container_definitions = jsonencode([
         {
-          name           = "care-activation-${terraform.workspace}"
-          image          = "${aws_ecr_repository.care_activation.repository_url}:${data.aws_ecr_image.care_activation.image_digest}"
-          essential      = true
+          name      = "care-activation-${terraform.workspace}"
+          image     = "${aws_ecr_repository.care_activation.repository_url}@${data.aws_ecr_image.care_activation.image_digest}"
+          essential = true
 
           environment    = []
           mountPoints    = []
