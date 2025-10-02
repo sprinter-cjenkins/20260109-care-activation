@@ -154,6 +154,11 @@ resource "aws_cloudwatch_log_group" "ecs" {
   retention_in_days = 7
 }
 
+data "aws_ecr_image" "care_activation" {
+  repository_name = "care-activation"
+  image_tag       = "latest"
+}
+
 module "care-activation-dev" {
   #depends_on         = [aws_lb_target_group.ecs_target_group_https]
   source             = "../../modules/ecs"
@@ -225,13 +230,19 @@ module "care-activation-dev" {
       container_definition_file = "${path.module}/templates/care_activation.json.tpl"
       container_definitions = jsonencode([
         {
-          name      = "care-activation-${terraform.workspace}"
-          image     = "${aws_ecr_repository.care_activation.repository_url}:latest"
-          essential = true
+          name           = "care-activation-${terraform.workspace}"
+          image          = "${aws_ecr_repository.care_activation.repository_url}:${data.aws_ecr_image.care_activation.image_digest}"
+          essential      = true
+
+          environment    = []
+          mountPoints    = []
+          systemControls = []
+          volumesFrom    = []
 
           portMappings = [
             {
               containerPort = 3000
+              hostPort      = 3000
               protocol      = "tcp"
             }
           ]
