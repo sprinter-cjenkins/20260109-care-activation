@@ -27,10 +27,13 @@ services:
       - BLAND_AI_API_KEY=${BLAND_AI_API_KEY}
       - PORT=3000
       - NODE_ENV=${NODE_ENV}
+      - DD_AGENT_HOST=datadog-agent
+      - DD_TRACE_AGENT_PORT=8126
 
     depends_on:
       mysql:
         condition: service_healthy
+
     volumes:
       - .:/app
       - /app/node_modules

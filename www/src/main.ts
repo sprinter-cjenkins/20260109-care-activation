@@ -1,8 +1,5 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import * as bodyParser from 'body-parser';
 import tracer from 'dd-trace';
-
+// Initialize tracer before any other imports in case we want to trace them
 tracer.init({
   service: process.env.SERVICE_NAME || 'care-activation',
   env: process.env.NODE_ENV || 'development',
@@ -16,11 +13,15 @@ tracer.init({
 
   // Set global tags for all traces
   tags: {
-    'service.name': process.env.SERVICE_NAME || 'care-activation',
+    'service.name': 'care-activation',
     env: process.env.NODE_ENV || 'development',
-    version: process.env.SERVICE_VERSION || '1.0.0',
+    version: '1.0.0',
   },
 });
+
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
