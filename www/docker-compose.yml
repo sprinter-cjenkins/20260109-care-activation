@@ -26,7 +26,7 @@ services:
       - DATABASE_URL=mysql://root:dev@mysql:3306/db_test
       - BLAND_AI_API_KEY=${BLAND_AI_API_KEY}
       - PORT=3000
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
 
     depends_on:
       mysql:
