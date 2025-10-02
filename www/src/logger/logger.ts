@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { LoggerService as NestLoggerService, Logger } from '@nestjs/common';
 import tracer from 'dd-trace';
 
