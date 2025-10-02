@@ -210,8 +210,6 @@ module "care-activation-dev" {
         aws_security_group.care-activation-dev-subnet-app-rds-sg.id
       ]
 
-      enable_execute_command = true
-
       tags = {
         service = "care-activation-dev"
         env     = terraform.workspace
