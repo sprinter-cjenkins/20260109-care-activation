@@ -2,7 +2,13 @@
 # File: ssm-rds-auto-connect.sh
 # Usage: ./ssm-rds-auto-connect.sh [LOCAL_PORT]
 
-set -euo pipefail
+#set -euo pipefail
+
+if [[ $USERNAME == "cjenkins" ]]; then
+  export AWS_PROFILE=ca
+else
+  echo "Not Mr. Jenkins"
+fi
 
 LOCAL_PORT="${1:-3306}"
 REMOTE_PORT=3306
@@ -17,7 +23,7 @@ EC2_INSTANCE_ID=$(aws ec2 describe-instances \
 
 if [[ -z "$EC2_INSTANCE_ID" || "$EC2_INSTANCE_ID" == "None" ]]; then
   echo "No running EC2 instance found with tag Name=$EC2_TAG_NAME"
-  exit 1
+  #exit 1
 fi
 echo "Found EC2 instance: $EC2_INSTANCE_ID"
 
@@ -28,7 +34,7 @@ RDS_ENDPOINT=$(aws rds describe-db-instances \
 
 if [[ -z "$RDS_ENDPOINT" || "$RDS_ENDPOINT" == "None" ]]; then
   echo "No RDS instance found with ID $RDS_INSTANCE_ID"
-  exit 1
+  #exit 1
 fi
 echo "Found RDS endpoint: $RDS_ENDPOINT"
 
@@ -55,9 +61,27 @@ while ! nc -z 127.0.0.1 "$LOCAL_PORT"; do
   sleep 1
 done
 
-# --- Fetch credentials securely and connect ---
-echo "Connecting to MySQL..."
-aws secretsmanager get-secret-value \
+
+# --- Check if mysql CLI is installed ---
+MYSQL_BIN=$(command -v mysql || true)
+
+# --- Fetch credentials securely ---
+CREDS=$(aws secretsmanager get-secret-value \
   --secret-id "$SECRET_ID" \
-  --query SecretString --output text | \
-jq -r '"mysql -h 127.0.0.1 -P '"$LOCAL_PORT"' -u \(.db_username) -p\(.db_password)"' | bash
+  --query SecretString --output text)
+
+DB_USER=$(echo "$CREDS" | jq -r .db_username)
+DB_PASS=$(echo "$CREDS" | jq -r .db_password)
+
+# --- Connect using mysql locally OR via Docker ---
+if [[ -n "$MYSQL_BIN" ]]; then
+  echo "Connecting with local mysql client..."
+  mysql -h 127.0.0.1 -P "$LOCAL_PORT" -u"$DB_USER" -p"$DB_USER"
+else
+  echo "mysql client not found, falling back to Docker..."
+  docker run --rm -it \
+    mysql:8 \
+    mysql -h host.docker.internal -P "$LOCAL_PORT" \
+    --user="$DB_USER" --password="$DB_PASS" "db_test"
+fi
+unset DB_USER DB_PASS
