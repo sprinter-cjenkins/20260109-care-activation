@@ -14,9 +14,8 @@ resource "aws_iam_role" "ecs_task_role" {
   description          = "This role grants permissions directly to the application code running inside your container to interact with other AWS services."
   path                 = "/"
   assume_role_policy   = data.aws_iam_policy_document.ecs_assume_role.json
-  max_session_duration = "3600"
-
-  tags = {}
+  max_session_duration = 3600
+  tags                 = {}
 }
 
 resource "aws_iam_role_policy" "ecs_task_policy" {
@@ -24,14 +23,11 @@ resource "aws_iam_role_policy" "ecs_task_policy" {
   role = aws_iam_role.ecs_task_role.id
 
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow",
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject"
-        ],
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject"]
         Resource = "arn:aws:s3:::my-app-bucket/*"
       }
     ]
@@ -43,9 +39,8 @@ resource "aws_iam_role" "ecs_execution_role" {
   description          = "This role grants permissions to the ECS agent (or Fargate agent) to perform actions on your behalf to manage the task's lifecycle."
   path                 = "/"
   assume_role_policy   = data.aws_iam_policy_document.ecs_assume_role.json
-  max_session_duration = "3600"
-
-  tags = {}
+  max_session_duration = 3600
+  tags                 = {}
 }
 
 resource "aws_iam_role_policy" "ecs_execution_policy" {
@@ -53,7 +48,7 @@ resource "aws_iam_role_policy" "ecs_execution_policy" {
   role = aws_iam_role.ecs_execution_role.id
 
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
         Effect = "Allow"
@@ -66,23 +61,29 @@ resource "aws_iam_role_policy" "ecs_execution_policy" {
         Resource = "*"
       },
       {
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "ssm:GetParameters",
-        ]
-        Effect   = "Allow"
-        Resource = "*"
         Sid      = "GetSecrets"
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue", "ssm:GetParameters"]
+        Resource = "*"
       },
       {
-        "Action" : [
-          "logs:CreateLogGroup",
+        Sid      = "CreateTaskLogs"
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssm:ListCommands",
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation",
+          "ssmmessages:*",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
-        ],
-        "Effect" : "Allow",
-        "Resource" : "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/*",
-        "Sid" : "CreateTaskLogs"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -160,7 +161,6 @@ data "aws_ecr_image" "care_activation" {
 }
 
 module "care-activation-dev" {
-  #depends_on         = [aws_lb_target_group.ecs_target_group_https]
   source             = "../../modules/ecs"
   cluster_name       = "care-activation-${terraform.workspace}"
   enable_ecs_service = true
@@ -210,6 +210,8 @@ module "care-activation-dev" {
         aws_security_group.care-activation-dev-subnet-app-rds-sg.id
       ]
 
+      enable_execute_command = true
+
       tags = {
         service = "care-activation-dev"
         env     = terraform.workspace
@@ -223,9 +225,10 @@ module "care-activation-dev" {
       launch_type            = "FARGATE"
       cpu                    = 512
       memory                 = 1024
-      task_role_arn          = aws_iam_role.ecs_execution_role.arn #ARN of IAM role that allows your Amazon ECS container task to make calls to other AWS services
-      execution_role_arn     = aws_iam_role.ecs_execution_role.arn #ARN of the task execution role that the Amazon ECS container agent and the Docker daemon can assume
+      task_role_arn          = aws_iam_role.ecs_execution_role.arn
+      execution_role_arn     = aws_iam_role.ecs_execution_role.arn
       enable_fault_injection = false
+      enable_execute_command = true
 
       container_definition_file = "${path.module}/templates/care_activation.json.tpl"
       container_definitions = jsonencode([
@@ -254,7 +257,6 @@ module "care-activation-dev" {
             }
           ]
 
-          # Send logs to CloudWatch
           logConfiguration = {
             logDriver = "awslogs"
             options = {
@@ -273,6 +275,7 @@ module "care-activation-dev" {
         cpu_architecture        = "X86_64"
         operating_system_family = "LINUX"
       }
+
       tags = {
         service = "care-activation-${terraform.workspace}"
         env     = terraform.workspace
@@ -296,7 +299,7 @@ resource "aws_security_group" "vpc_endpoint_sg" {
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
-    security_groups = [aws_security_group.care-activation-dev-ecs-sg.id] # ECS task SG
+    security_groups = [aws_security_group.care-activation-dev-ecs-sg.id]
   }
 
   egress {
@@ -311,7 +314,6 @@ resource "aws_security_group" "vpc_endpoint_sg" {
   }
 }
 
-# Example for an ECR API VPC endpoint
 resource "aws_vpc_endpoint" "ecr_api" {
   vpc_id             = module.networking.ids.vpc_id
   service_name       = "com.amazonaws.${data.aws_region.current.name}.ecr.api"
@@ -320,7 +322,6 @@ resource "aws_vpc_endpoint" "ecr_api" {
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
 }
 
-# ECR Docker endpoint
 resource "aws_vpc_endpoint" "ecr_docker" {
   vpc_id             = module.networking.ids.vpc_id
   service_name       = "com.amazonaws.${data.aws_region.current.name}.ecr.dkr"
@@ -329,7 +330,6 @@ resource "aws_vpc_endpoint" "ecr_docker" {
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
 }
 
-# Secrets Manager endpoint
 resource "aws_vpc_endpoint" "secretsmanager" {
   vpc_id             = module.networking.ids.vpc_id
   service_name       = "com.amazonaws.${data.aws_region.current.name}.secretsmanager"
@@ -339,9 +339,8 @@ resource "aws_vpc_endpoint" "secretsmanager" {
 }
 
 resource "aws_acm_certificate" "care_activation" {
-  domain_name       = "careactivation.sprinterhealth.com" # replace with your domain
-  validation_method = "DNS"
-
+  domain_name               = "careactivation.sprinterhealth.com"
+  validation_method         = "DNS"
   subject_alternative_names = []
 
   tags = {
@@ -384,9 +383,10 @@ resource "aws_lb_listener" "care-activation-dev-https" {
     }
   }
 }
+
 resource "aws_lb_target_group" "ecs_target_group_https" {
   name        = "care-activation-tg-443"
-  port        = 443
+  port        = 3000
   protocol    = "HTTPS"
   target_type = "ip"
   vpc_id      = module.networking.ids.vpc_id
@@ -413,7 +413,7 @@ resource "aws_lb_target_group" "ecs_target_group_https" {
 resource "aws_lb" "care-activation-dev" {
   name                             = "care-activation-dev"
   load_balancer_type               = "application"
-  subnets                          = [module.networking.ids.public_subnet_ids[0], module.networking.ids.public_subnet_ids[1], module.networking.ids.public_subnet_ids[2]]
+  subnets                          = module.networking.ids.public_subnet_ids
   security_groups                  = [aws_security_group.care-activation-dev-alb-sg.id]
   idle_timeout                     = 60
   enable_http2                     = true
@@ -425,4 +425,28 @@ resource "aws_lb" "care-activation-dev" {
     env  = terraform.workspace
     Name = "care-activation-dev"
   }
+}
+
+resource "aws_vpc_endpoint" "ssm" {
+  vpc_id             = module.networking.ids.vpc_id
+  service_name       = "com.amazonaws.${data.aws_region.current.name}.ssm"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = module.networking.ids.private_subnet_ids
+  security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
+}
+
+resource "aws_vpc_endpoint" "ssmmessages" {
+  vpc_id             = module.networking.ids.vpc_id
+  service_name       = "com.amazonaws.${data.aws_region.current.name}.ssmmessages"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = module.networking.ids.private_subnet_ids
+  security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
+}
+
+resource "aws_vpc_endpoint" "ec2messages" {
+  vpc_id             = module.networking.ids.vpc_id
+  service_name       = "com.amazonaws.${data.aws_region.current.name}.ec2messages"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = module.networking.ids.private_subnet_ids
+  security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
 }
