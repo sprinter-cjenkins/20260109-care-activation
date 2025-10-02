@@ -14,7 +14,7 @@ export class CallerController {
 
   @Get('status/:callId')
   async getCall(@Param('callId') callId: string): Promise<APICallResult> {
-    return this.callerService.getCall(callId);
+    return await this.callerService.getCall(callId);
   }
 
   @Post('webhook')

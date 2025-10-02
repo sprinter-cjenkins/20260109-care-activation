@@ -26,12 +26,29 @@ services:
       - DATABASE_URL=mysql://root:dev@mysql:3306/db_test
       - BLAND_AI_API_KEY=${BLAND_AI_API_KEY}
       - PORT=3000
+      - NODE_ENV=${NODE_ENV}
+      - DD_AGENT_HOST=datadog-agent
+      - DD_TRACE_AGENT_PORT=8126
+
     depends_on:
       mysql:
         condition: service_healthy
+
     volumes:
       - .:/app
       - /app/node_modules
+
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:latest
+    environment:
+      - DD_API_KEY=${DATADOG_API_KEY}
+      - DD_SITE=us3.datadoghq.com
+      - DD_LOGS_ENABLED=true
+      - DD_APM_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_LOGS_JSON=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 volumes:
   mysql-data:

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   CareTaskEventStatus,
   CareTaskEventType,
@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
-// import { ElevenLabsProvider } from './providers/eleven-labs.provider';
+import { LoggerNoPHI } from '../logger/logger';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -17,12 +17,12 @@ export interface APICallResult extends CallResult {
 
 @Injectable()
 export class CallerService {
-  private readonly logger = new Logger(CallerService.name);
   private readonly callerProvider: CallerProvider;
 
+  private readonly logger: LoggerNoPHI;
   constructor(private readonly prisma: PrismaService) {
-    // this.callerProvider = new ElevenLabsProvider();
-    this.callerProvider = new BlandAIProvider();
+    this.logger = new LoggerNoPHI(CallerService.name);
+    this.callerProvider = new BlandAIProvider(this.logger);
   }
 
   async initiateCall(taskId: string): Promise<APICallResult> {
@@ -77,7 +77,7 @@ export class CallerService {
   }
 
   async getCall(callId: string): Promise<APICallResult> {
-    this.logger.log(`Getting status for call ${callId}`);
+    this.logger.log(`Getting call status for call ${callId}`);
     try {
       const result = await this.callerProvider.getCall(callId);
       await this.updateCallEvent(result);
