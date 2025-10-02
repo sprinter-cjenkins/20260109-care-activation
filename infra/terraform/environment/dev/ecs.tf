@@ -131,8 +131,8 @@ resource "aws_security_group" "care-activation-dev-ecs-sg" {
   # Only allow inbound traffic from ALB security group
   ingress {
     description     = "Allow traffic from ALB"
-    from_port       = 443
-    to_port         = 443
+    from_port       = 3000 # <--- container port
+    to_port         = 3000
     protocol        = "tcp"
     security_groups = [aws_security_group.care-activation-dev-alb-sg.id]
   }
@@ -349,6 +349,23 @@ resource "aws_acm_certificate" "care_activation" {
   }
 }
 
+resource "aws_lb" "care-activation-dev" {
+  name                             = "care-activation-dev"
+  load_balancer_type               = "application"
+  subnets                          = module.networking.ids.public_subnet_ids
+  security_groups                  = [aws_security_group.care-activation-dev-alb-sg.id]
+  idle_timeout                     = 60
+  enable_http2                     = true
+  enable_cross_zone_load_balancing = true
+  internal                         = false
+  ip_address_type                  = "ipv4"
+
+  tags = {
+    env  = terraform.workspace
+    Name = "care-activation-dev"
+  }
+}
+
 resource "aws_lb_listener" "care-activation-dev-http" {
   load_balancer_arn = aws_lb.care-activation-dev.arn
   port              = 80
@@ -373,21 +390,15 @@ resource "aws_lb_listener" "care-activation-dev-https" {
   certificate_arn   = aws_acm_certificate.care_activation.arn
 
   default_action {
-    type = "forward"
-
-    forward {
-      target_group {
-        arn    = aws_lb_target_group.ecs_target_group_https.arn
-        weight = 1
-      }
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ecs_target_group_https.arn
   }
 }
 
 resource "aws_lb_target_group" "ecs_target_group_https" {
   name        = "care-activation-tg-443"
   port        = 3000
-  protocol    = "HTTPS"
+  protocol    = "HTTP" # Matches container port
   target_type = "ip"
   vpc_id      = module.networking.ids.vpc_id
 
@@ -395,35 +406,22 @@ resource "aws_lb_target_group" "ecs_target_group_https" {
     enabled             = true
     path                = "/health"
     port                = "traffic-port"
-    protocol            = "HTTPS"
-    matcher             = "200-499"
+    protocol            = "HTTP" # Must match container
+    matcher             = "200-399"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 3
     unhealthy_threshold = 3
   }
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tags = {
     Environment = "dev"
     ManagedBy   = "Terraform"
     Project     = "care-activation-${terraform.workspace}"
-  }
-}
-
-resource "aws_lb" "care-activation-dev" {
-  name                             = "care-activation-dev"
-  load_balancer_type               = "application"
-  subnets                          = module.networking.ids.public_subnet_ids
-  security_groups                  = [aws_security_group.care-activation-dev-alb-sg.id]
-  idle_timeout                     = 60
-  enable_http2                     = true
-  enable_cross_zone_load_balancing = true
-  internal                         = false
-  ip_address_type                  = "ipv4"
-
-  tags = {
-    env  = terraform.workspace
-    Name = "care-activation-dev"
   }
 }
 
