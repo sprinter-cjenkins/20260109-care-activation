@@ -28,6 +28,7 @@
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/terminus": "^11.0.0",
     "@prisma/client": "^6.15.0",
     "dd-trace": "^5.67.0",
     "mysql2": "^3.14.4",
