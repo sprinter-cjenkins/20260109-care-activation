@@ -170,8 +170,8 @@ module "care-activation-dev" {
       service_name             = "care-activation-dev"
       task_definition_key      = "care_activation-dev"
       launch_type              = "FARGATE"
-      desired_count            = 1
-      min_capacity             = 1
+      desired_count            = 3
+      min_capacity             = 3
       max_capacity             = 3
       cpu_target_value         = 50
       use_capacity_provider    = false
