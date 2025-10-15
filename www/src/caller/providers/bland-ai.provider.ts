@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
 import { LoggerNoPHI } from '../../logger/logger';
-import { getAiTask } from '../utils';
-import { cleanJsonString, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from '../utils';
+import { buildRequestData, getPathwayID } from '../utils';
+import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '../utils';
 import type { Request } from 'express';
 
 export interface BlandAIResponse {
@@ -48,10 +48,10 @@ export class BlandAIProvider implements CallerProvider {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
-    const aiTask = getAiTask(taskType);
+    const pathwayId = getPathwayID(taskType);
 
-    if (!aiTask) {
-      throw new Error('Task not found');
+    if (!pathwayId) {
+      throw new Error('Pathway ID not found');
     }
 
     try {
@@ -64,13 +64,14 @@ export class BlandAIProvider implements CallerProvider {
         body: JSON.stringify({
           phone_number: patient.phoneNumber,
           voice: 'June',
-          task: aiTask,
-          first_sentence: getFirstSentence(patient),
+          pathway_id: getPathwayID(taskType),
           voicemail: {
             message: getVoicemailMessage(patient, taskType),
             action: 'leave_message',
             sensitive: true,
           },
+          request_data: buildRequestData(patient),
+
           summary_prompt: getSummaryPrompt(),
         }),
       });
