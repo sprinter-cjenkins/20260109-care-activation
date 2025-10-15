@@ -8,7 +8,7 @@ import {
   PartnerOrganization,
   Patient,
 } from '@prisma/client';
-import { getAiTask, getFirstSentence, getSummaryPrompt, getVoicemailMessage } from './utils';
+import { buildRequestData, getPathwayID, getSummaryPrompt, getVoicemailMessage } from './utils';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -114,7 +114,7 @@ describe('CallerService', () => {
       jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockNonDexaTask);
 
       // Act & Assert
-      await expect(service.initiateCall(taskId)).rejects.toThrow('Task not found');
+      await expect(service.initiateCall(taskId)).rejects.toThrow('Pathway ID not found');
     });
 
     it('should successfully call Bland AI with correct parameters for DEXA_SCAN task', async () => {
@@ -131,25 +131,30 @@ describe('CallerService', () => {
       await service.initiateCall(taskId);
 
       // Verify Bland AI API call with correct parameters
-      expect(global.fetch).toHaveBeenCalledWith('https://api.bland.ai/v1/calls', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          authorization: 'test-api-key',
-        },
-        body: JSON.stringify({
-          phone_number: mockPatient.phoneNumber,
-          voice: 'June',
-          task: getAiTask(mockDexaTask.type),
-          first_sentence: getFirstSentence(mockPatient),
-          voicemail: {
-            message: getVoicemailMessage(mockPatient, mockDexaTask.type),
-            action: 'leave_message',
-            sensitive: true,
-          },
-          summary_prompt: getSummaryPrompt(),
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.bland.ai/v1/calls',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            authorization: 'test-api-key',
+          }),
+          body: expect.stringContaining(
+            JSON.stringify({
+              phone_number: mockPatient.phoneNumber,
+              voice: 'June',
+              pathway_id: getPathwayID(mockDexaTask.type),
+              voicemail: {
+                message: getVoicemailMessage(mockPatient, mockDexaTask.type),
+                action: 'leave_message',
+                sensitive: true,
+              },
+              request_data: buildRequestData(mockPatient),
+              summary_prompt: getSummaryPrompt(),
+            }),
+          ),
         }),
-      });
+      );
     });
 
     it('should throw error when patient has opted out of phone outreach', async () => {
