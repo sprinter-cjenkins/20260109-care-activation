@@ -48,7 +48,7 @@ enum OutreachChannel {
 }
 
 model Patient {
-  birthDate           DateTime
+  birthDate           DateTime @db.Date
   createdAt           DateTime @default(now())
   emailAddress        String?
   externalId          String @unique
