@@ -138,7 +138,7 @@ describe('CallerService', () => {
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
             authorization: 'test-api-key',
-          }),
+          }) as Record<string, string>,
           body: expect.stringContaining(
             JSON.stringify({
               phone_number: mockPatient.phoneNumber,
@@ -152,7 +152,7 @@ describe('CallerService', () => {
               request_data: buildRequestData(mockPatient),
               summary_prompt: getSummaryPrompt(),
             }),
-          ),
+          ) as string,
         }),
       );
     });
