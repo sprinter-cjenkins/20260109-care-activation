@@ -74,9 +74,11 @@ describe('CallerService', () => {
             eventResult: {
               createMany: jest.fn(),
               findMany: jest.fn(),
+              findFirstOrThrow: jest.fn(),
             },
             patientOptOut: {
               findFirst: jest.fn(),
+              create: jest.fn(),
             },
           },
         },
@@ -150,7 +152,7 @@ describe('CallerService', () => {
                 sensitive: true,
               },
               request_data: buildRequestData(mockPatient),
-              summary_prompt: getSummaryPrompt(),
+              summary_prompt: getSummaryPrompt(mockPatient),
             }),
           ),
         }),
@@ -183,7 +185,10 @@ describe('CallerService', () => {
     };
 
     const mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
-    const mockCareTaskFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
+    const mockCareTaskFindFirstOrThrow = jest
+      .fn()
+      .mockResolvedValue({ id: callId, task: { patientId: mockPatient.id } });
+    const mockPatientOptOutCreate = jest.fn().mockResolvedValue({});
     const mockEventResultCreateMany = jest.fn().mockResolvedValue({});
     let mockEventResultFindMany = jest.fn().mockResolvedValue([]);
     const mockEventResultFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
@@ -198,8 +203,9 @@ describe('CallerService', () => {
         .mockImplementation(mockEventResultCreateMany);
       jest.spyOn(prismaService.eventResult, 'findMany').mockImplementation(mockEventResultFindMany);
       jest
-        .spyOn(prismaService.careTaskEvent, 'findFirstOrThrow')
+        .spyOn(prismaService.eventResult, 'findFirstOrThrow')
         .mockImplementation(mockEventResultFindFirstOrThrow);
+      jest.spyOn(prismaService.patientOptOut, 'create').mockImplementation(mockPatientOptOutCreate);
 
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
@@ -267,6 +273,23 @@ describe('CallerService', () => {
       await service.getCall(callId);
 
       expect(mockEventResultCreateMany).not.toHaveBeenCalled();
+    });
+
+    it('should opt out if patient summary has requested_opt_out', async () => {
+      mockBlandResponse.summary = JSON.stringify({
+        requested_opt_out: true,
+      });
+
+      await service.getCall(callId);
+
+      expect(mockPatientOptOutCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            patientId: mockPatient.id,
+            channel: OutreachChannel.PHONE,
+          },
+        }),
+      );
     });
   });
 });

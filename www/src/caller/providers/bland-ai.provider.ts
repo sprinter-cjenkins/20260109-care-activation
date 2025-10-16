@@ -21,6 +21,8 @@ export interface BlandAIResponse {
 interface BlandAISummary {
   questions: Array<{ key: string; value: string }>;
   other: Array<{ key: string; value: string }>;
+  verifications: Array<{ key: string; result: string; expected: string; received: string }>;
+  requested_opt_out: boolean;
 }
 
 export interface ParsedBlandAIResponse {
@@ -72,7 +74,7 @@ export class BlandAIProvider implements CallerProvider {
           },
           request_data: buildRequestData(patient),
 
-          summary_prompt: getSummaryPrompt(),
+          summary_prompt: getSummaryPrompt(patient),
         }),
       });
 

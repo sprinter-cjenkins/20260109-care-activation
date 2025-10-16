@@ -69,10 +69,19 @@ export class CallerService {
       },
     });
 
+    let message = '';
+    if (callResult.status === 'initiated') {
+      message = 'Call initiated successfully';
+    } else if (callResult.status === 'completed') {
+      message = 'Call completed successfully';
+    } else if (callResult.status === 'failed') {
+      message = 'Call failed to initiate';
+    }
+
     return {
       callId: callResult.callId,
-      status: 'initiated',
-      message: 'Call initiated successfully',
+      status: callResult.status,
+      message: message,
     };
   }
 
@@ -81,9 +90,17 @@ export class CallerService {
     try {
       const result = await this.callerProvider.getCall(callId);
       await this.updateCallEvent(result);
+      let message = '';
+      if (result.status === 'completed') {
+        message = 'Call retrieved successfully';
+      } else if (result.status === 'failed') {
+        message = 'Call failed to retrieve';
+      } else if (result.status === 'initiated') {
+        message = 'Call is still in progress';
+      }
       return {
         ...result,
-        message: 'Call status retrieved successfully',
+        message: message,
       };
     } catch (error) {
       this.logger.error(`Failed to get call status:`, error);
@@ -100,22 +117,34 @@ export class CallerService {
     if (!callId) {
       throw new Error('Call ID not found');
     }
-    const callEventId = await this.prisma.careTaskEvent.findFirstOrThrow({
+    const careTaskEvent = await this.prisma.careTaskEvent.findFirstOrThrow({
       where: { externalId: callId },
+      include: {
+        task: true,
+      },
     });
 
-    if (!callEventId) {
+    if (!careTaskEvent) {
       throw new Error('Call event not found');
+    }
+
+    if (summary?.requested_opt_out) {
+      await this.prisma.patientOptOut.create({
+        data: {
+          patientId: careTaskEvent.task.patientId,
+          channel: OutreachChannel.PHONE,
+        },
+      });
     }
 
     if (answeredBy === 'voicemail') {
       await this.prisma.careTaskEvent.update({
-        where: { id: callEventId.id },
+        where: { id: careTaskEvent.id },
         data: { status: CareTaskEventStatus.VOICEMAIL },
       });
     } else if (answeredBy === 'human') {
       await this.prisma.careTaskEvent.update({
-        where: { id: callEventId.id },
+        where: { id: careTaskEvent.id },
         data: { status: CareTaskEventStatus.SUCCESS },
       });
     }
@@ -124,7 +153,7 @@ export class CallerService {
       const existingQuestions = await this.prisma.eventResult.findMany({
         where: {
           type: EventResultType.QUESTION,
-          eventId: callEventId.id,
+          eventId: careTaskEvent.id,
         },
       });
 
@@ -136,7 +165,7 @@ export class CallerService {
         await this.prisma.eventResult.createMany({
           data: nonExistingQuestions.map((question) => ({
             type: EventResultType.QUESTION,
-            eventId: callEventId.id,
+            eventId: careTaskEvent.id,
             key: question.key,
             value: question.value,
           })),
@@ -148,7 +177,7 @@ export class CallerService {
       const existingOther = await this.prisma.eventResult.findMany({
         where: {
           type: EventResultType.OTHER,
-          eventId: callEventId.id,
+          eventId: careTaskEvent.id,
         },
       });
 
@@ -159,9 +188,24 @@ export class CallerService {
       await this.prisma.eventResult.createMany({
         data: nonExistingOther.map((other) => ({
           type: EventResultType.OTHER,
-          eventId: callEventId.id,
+          eventId: careTaskEvent.id,
           key: other.key,
           value: other.value,
+        })),
+      });
+    }
+
+    if (summary?.verifications?.length && summary.verifications.length > 0) {
+      await this.prisma.eventResult.createMany({
+        data: summary.verifications.map((verification) => ({
+          type: EventResultType.VERIFICATION,
+          eventId: careTaskEvent.id,
+          key: verification.key,
+          value: verification.result,
+          metadata: {
+            expected: verification.expected,
+            received: verification.received,
+          },
         })),
       });
     }
