@@ -118,8 +118,26 @@ resource "aws_ecs_service" "datadog_service" {
       module.networking.ids.public_subnet_ids[1],
       module.networking.ids.public_subnet_ids[2]
     ]
-    security_groups = ["sg-03c4747b070f202be"]
+    security_groups = [aws_security_group.datadog_sg.id]
   }
 
-  desired_count = 1
+  desired_count = 3
+}
+
+resource "aws_security_group" "datadog_sg" {
+  name        = "datadog-ecs-service-sg"
+  description = "Allow outbound internet access for Datadog agent"
+  vpc_id      = module.networking.ids.vpc_id
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    name        = "datadog-ecs-service-sg"
+    Environment = terraform.workspace
+  }
 }
