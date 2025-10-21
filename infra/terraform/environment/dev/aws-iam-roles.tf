@@ -65,7 +65,8 @@ resource "aws_iam_policy" "terraforms3backend_inline_policy" {
         Resource = [
           "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform",
           "arn:aws:s3:::${var.resource_name}-${terraform.workspace}-terraform/*",
-          aws_secretsmanager_secret.care-activation-mysql-dev.arn
+          aws_secretsmanager_secret.care-activation-mysql-dev.arn,
+          data.aws_secretsmanager_secret.datadog_api_key.arn
         ]
       }
     ]

@@ -74,7 +74,8 @@ resource "aws_instance" "ssm_ec2" {
   }
   lifecycle {
     ignore_changes = [
-      user_data
+      user_data,
+      ami
     ]
   }
 }
