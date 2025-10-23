@@ -82,5 +82,9 @@ data "aws_secretsmanager_secret_version" "bland_ai_api_key_version" {
 }
 
 locals {
-  bland_ai_api_key = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).api_key
+  bland_ai_api_key            = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).API_KEY
+  bland_webhook_signature_key = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).WEBHOOK_SIGNATURE_KEY
+  bland_webhook_url           = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).WEBHOOK_URL
+  bland_from                  = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).FROM
+  bland_citation_schema_ids   = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).CITATION_SCHEMA_IDS
 }
