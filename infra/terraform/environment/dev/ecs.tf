@@ -252,6 +252,10 @@ module "care-activation-dev" {
             {
               name      = "DATABASE_URL"
               valueFrom = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.arn
+            },
+            {
+              name      = "BLAND_API_KEY"
+              valueFrom = local.bland_ai_api_key #data.aws_secretsmanager_secret.bland_ai_api_key.arn
             }
           ]
 

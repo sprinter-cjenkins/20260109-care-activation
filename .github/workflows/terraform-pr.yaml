@@ -22,11 +22,7 @@ permissions:
 jobs:
   security-validation:
     name: Security & Validation
-    # Filter on PR source branch name (head_ref)
-    if: |
-      startsWith(github.head_ref, 'terraform-') ||
-      startsWith(github.head_ref, 'feature/terraform-') ||
-      startsWith(github.head_ref, 'terraform/')
+
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -74,11 +70,7 @@ jobs:
   terraform:
     name: Terraform Plan & Comment
     needs: security-validation
-    # Filter on PR source branch name (head_ref)
-    if: |
-      startsWith(github.head_ref, 'terraform-') ||
-      startsWith(github.head_ref, 'feature/terraform-') ||
-      startsWith(github.head_ref, 'terraform/')
+
     runs-on: ubuntu-latest
     strategy:
       matrix:
