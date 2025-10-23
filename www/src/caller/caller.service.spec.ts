@@ -291,5 +291,20 @@ describe('CallerService', () => {
         }),
       );
     });
+
+    it('handles invalid summaries', async () => {
+      mockBlandResponse.summary = 'Failed to generate summary';
+      await service.getCall(callId);
+      expect(mockEventResultCreateMany).toHaveBeenCalledWith({
+        data: [
+          {
+            type: 'OTHER',
+            eventId: callId,
+            key: 'failureReason',
+            value: 'Failed to generate summary',
+          },
+        ],
+      });
+    });
   });
 });

@@ -27,7 +27,11 @@ export class LoggerNoPHI implements NestLoggerService {
     if (process.env.NODE_ENV === 'production') {
       this.sendToExternalService('error', message, this.source, tags, trace);
     } else {
-      this.localLogger.error(message, trace, tags);
+      const extraParams = {
+        ...tags,
+        ...(trace && { trace }),
+      };
+      this.localLogger.error(message, extraParams);
     }
   }
 

@@ -10,6 +10,7 @@ import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
 import { LoggerNoPHI } from '../logger/logger';
+import { getErrorMessage } from '../utils';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -105,7 +106,10 @@ export class CallerService {
         message: message,
       };
     } catch (error) {
-      this.logger.error(`Failed to get call status:`, error);
+      this.logger.error(`Failed to get call status:`, {
+        error: getErrorMessage(error),
+        externalCallId: callId,
+      });
       return {
         callId: callId,
         status: 'failed',

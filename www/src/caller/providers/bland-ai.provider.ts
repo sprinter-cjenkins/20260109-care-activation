@@ -5,6 +5,7 @@ import { buildRequestData, getPathwayID } from '../utils';
 import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '../utils';
 import type { Request } from 'express';
 import crypto from 'node:crypto';
+import { getErrorMessage } from '../../utils';
 
 export interface BlandAIResponse {
   status: string;
@@ -97,7 +98,7 @@ export class BlandAIProvider implements CallerProvider {
         status: 'initiated',
       };
     } catch (error) {
-      this.logger.error(`Failed to initiate call:`, error);
+      this.logger.error(`Failed to initiate call:`, { error: getErrorMessage(error) });
       return {
         callId: '',
         status: 'failed',
@@ -137,7 +138,7 @@ export class BlandAIProvider implements CallerProvider {
         answeredBy,
       };
     } catch (error) {
-      this.logger.error(`Failed to get call status:`, error);
+      this.logger.error(`Failed to get call status:`, { error: getErrorMessage(error) });
       return {
         callId: callId,
         status: 'failed',
@@ -147,7 +148,21 @@ export class BlandAIProvider implements CallerProvider {
 
   parseBlandAIResponse(data: BlandAIResponse): ParsedBlandAIResponse {
     const { call_id, answered_by, summary } = data;
-    const parsedSummary = JSON.parse(cleanJsonString(summary)) as BlandAISummary;
+    let parsedSummary: BlandAISummary = {
+      questions: [],
+      other: [],
+      verifications: [],
+      requested_opt_out: false,
+    };
+    try {
+      parsedSummary = JSON.parse(cleanJsonString(summary)) as BlandAISummary;
+    } catch (error) {
+      this.logger.error(`Failed to parse summary:`, {
+        error: getErrorMessage(error),
+        externalCallId: call_id,
+      });
+      parsedSummary.other.push({ key: 'failureReason', value: summary });
+    }
     return { call_id, answered_by, summary: parsedSummary };
   }
 
