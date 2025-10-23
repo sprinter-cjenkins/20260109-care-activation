@@ -1,0 +1,108 @@
+name: ECS Deploy via CodeDeploy
+
+on:
+#  workflow_run:
+#    workflows:
+#      - Docker Build and Push to ECR
+
+  workflow_dispatch:
+
+concurrency:
+  group: ecs-deploy-${{ github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy ECS Services via CodeDeploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        base-environments: [ "dev" ]
+
+    env:
+      TF_IN_AUTOMATION: 1
+      TF_VERSION: 1.11.4
+      WORKING-DIRECTORY: infra/terraform/environment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: >-
+            ${{
+              matrix.base-environments == 'prod' &&
+              'arn:aws:iam::417107812602:role/care-activation-prod-terraform-ro-role' ||
+              'arn:aws:iam::417107812602:role/care-activation-dev-terraform-ro-role'
+            }}
+          role-session-name: ${{ github.repository_id }}-${{ github.actor }}
+          aws-region: us-west-2
+
+      - name: Create AWS CLI profile
+        run: |
+          mkdir -p ~/.aws
+          cat <<EOF > ~/.aws/credentials
+          [${{ matrix.base-environments }}]
+          aws_access_key_id=${AWS_ACCESS_KEY_ID}
+          aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
+          aws_session_token=${AWS_SESSION_TOKEN}
+          EOF
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
+        run: |
+          terraform init -input=false
+          terraform workspace select ${{ matrix.base-environments }}
+
+      - name: Load Terraform outputs
+        id: tf_outputs
+        run: |
+          terraform output -json > tf_outputs.json
+          APP_NAME=$(jq -r '.codedeploy_app_names.care_activation.value' tf_outputs.json)
+          DEPLOYMENT_GROUP=$(jq -r '.codedeploy_deployment_groups.care_activation.value' tf_outputs.json)
+          TASK_DEFINITION=$(jq -r '.task_definition_arns.care_activation.value' tf_outputs.json)
+          CONTAINER_NAME=$(jq -r '.task_definitions.care_activation.value.container_template_vars.container_name' tf_outputs.json)
+          CONTAINER_PORT=$(jq -r '.task_definitions.care_activation.value.container_template_vars.container_port // 80' tf_outputs.json)
+          echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+          echo "DEPLOYMENT_GROUP=$DEPLOYMENT_GROUP" >> $GITHUB_ENV
+          echo "TASK_DEFINITION=$TASK_DEFINITION" >> $GITHUB_ENV
+          echo "CONTAINER_NAME=$CONTAINER_NAME" >> $GITHUB_ENV
+          echo "CONTAINER_PORT=$CONTAINER_PORT" >> $GITHUB_ENV
+
+
+      - name: Trigger CodeDeploy ECS Deployment
+        id: codedeploy
+        run: |
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name $APP_NAME \
+            --deployment-group-name $DEPLOYMENT_GROUP \
+            --revision "revisionType=AppSpecContent,appSpecContent={\"version\":\"0.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"$TASK_DEFINITION\",\"LoadBalancerInfo\":{\"ContainerName\":\"$CONTAINER_NAME\",\"ContainerPort\":$CONTAINER_PORT}}}}]}" \
+            --description "Deploy $GITHUB_SHA" \
+            --region $AWS_REGION \
+            --query "deploymentId" --output text)
+          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_ENV
+
+      - name: Wait for CodeDeploy Deployment to Complete
+        run: |
+          aws deploy wait deployment-successful --deployment-id $DEPLOYMENT_ID
+
+      - name: Get Active ECS Task Set
+        id: active-task-set
+        run: |
+          ACTIVE_TASK_SET=$(aws ecs describe-services \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --services ${{ secrets.ECS_SERVICE_NAME }} \
+            --query "services[0].deployments[?status=='PRIMARY'].id" \
+            --output text)
+          echo "ACTIVE_TASK_SET=$ACTIVE_TASK_SET" >> $GITHUB_ENV
