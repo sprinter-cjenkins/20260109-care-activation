@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { LoggerService as NestLoggerService, Logger } from '@nestjs/common';
 import tracer from 'dd-trace';
+import { PHISanitizer } from './phi-sanitizer';
 
 export class LoggerNoPHI implements NestLoggerService {
   private readonly localLogger: Logger;
@@ -12,40 +13,41 @@ export class LoggerNoPHI implements NestLoggerService {
     this.source = source;
   }
 
-  log(message: any, context?: string) {
+  log(message: string, tags: Record<string, any> = {}) {
     // Send to external service (only in production or when explicitly enabled)
     if (process.env.NODE_ENV === 'production') {
-      this.sendToExternalService('info', message, this.source, context);
+      this.sendToExternalService('info', message, this.source, tags);
     } else {
-      this.localLogger.log(message, context);
+      // For test, sanitize the log
+      this.localLogger.log(message, tags);
     }
   }
 
-  error(message: any, trace?: string, context?: string) {
+  error(message: string, tags: Record<string, any> = {}, trace?: string) {
     if (process.env.NODE_ENV === 'production') {
-      this.sendToExternalService('error', message, this.source, context, trace);
+      this.sendToExternalService('error', message, this.source, tags, trace);
     } else {
-      this.localLogger.error(message, trace, context);
+      this.localLogger.error(message, trace, tags);
     }
   }
 
-  warn(message: any, context?: string) {
+  warn(message: string, tags: Record<string, any> = {}) {
     if (process.env.NODE_ENV === 'production') {
-      this.sendToExternalService('warn', message, this.source, context);
+      this.sendToExternalService('warn', message, this.source, tags);
     } else {
-      this.localLogger.warn(message, context);
+      this.localLogger.warn(message, tags);
     }
   }
 
-  debug(message: any, context?: string) {
+  debug(message: string, tags: Record<string, any> = {}) {
     if (process.env.NODE_ENV !== 'production') {
-      this.localLogger.debug(message, context);
+      this.localLogger.debug(message, tags);
     }
   }
 
-  verbose(message: any, context?: string) {
+  verbose(message: string, tags: Record<string, any> = {}) {
     if (process.env.NODE_ENV !== 'production') {
-      this.localLogger.verbose(message, context);
+      this.localLogger.verbose(message, tags);
     }
   }
 
@@ -53,15 +55,15 @@ export class LoggerNoPHI implements NestLoggerService {
     level: string,
     message: any,
     source: string,
-    context?: string,
+    tags: Record<string, any>,
     trace?: string,
   ) {
     try {
       const span = tracer.scope().active();
+      const sanitizedTags = PHISanitizer.sanitizeObject(tags) as Record<string, unknown>;
       const logData = {
         level,
-        message: typeof message === 'string' ? message : JSON.stringify(message),
-        context,
+        message: PHISanitizer.sanitizeForLogging(message),
         timestamp: new Date().toISOString(),
         source: source,
         service: 'care-activation',
@@ -70,7 +72,8 @@ export class LoggerNoPHI implements NestLoggerService {
           trace_id: span.context().toTraceId(),
           span_id: span.context().toSpanId(),
         }),
-        ...(trace && { stack_trace: trace }),
+        ...(trace && { stack_trace: PHISanitizer.sanitizeForLogging(trace) }),
+        ...sanitizedTags,
       };
 
       // Send metrics to external service

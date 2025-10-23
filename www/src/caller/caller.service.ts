@@ -51,7 +51,9 @@ export class CallerService {
       throw new Error('Patient has opted out of phone outreach');
     }
 
-    this.logger.log(`Initiating call for patient ${patient.id})`);
+    this.logger.log(`Initiating call for patient`, {
+      patientId: patient.id,
+    });
 
     const callResult = await this.callerProvider.initiateCall({
       patient,
