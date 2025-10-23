@@ -4,6 +4,7 @@ import { LoggerNoPHI } from '../../logger/logger';
 import { buildRequestData, getPathwayID } from '../utils';
 import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '../utils';
 import type { Request } from 'express';
+import crypto from 'node:crypto';
 
 export interface BlandAIResponse {
   status: string;
@@ -73,8 +74,10 @@ export class BlandAIProvider implements CallerProvider {
             sensitive: true,
           },
           request_data: buildRequestData(patient),
-
           summary_prompt: getSummaryPrompt(patient),
+          ...(process.env.NODE_ENV !== 'development' && {
+            webhook: process.env.BLAND_AI_WEBHOOK_URL,
+          }),
         }),
       });
 
@@ -149,7 +152,19 @@ export class BlandAIProvider implements CallerProvider {
   }
 
   parseWebhook(request: Request): Promise<CallResult> {
-    const body = JSON.parse((request.body as Buffer).toString('utf8')) as BlandAIResponse;
+    const signature = request.headers['x-webhook-signature'] as string | undefined;
+    const secret = process.env.BLAND_AI_WEBHOOK_SECRET;
+
+    const rawBody = (request.body as Buffer).toString('utf8');
+    const body = JSON.parse(rawBody) as BlandAIResponse;
+
+    if (!signature || !secret) {
+      throw new Error('Bland AI webhook signature or secret not found');
+    }
+    const verified = this.verifyWebhookSignature(signature, secret, rawBody);
+    if (!verified) {
+      throw new Error('Invalid webhook signature');
+    }
     const parsedData = this.parseBlandAIResponse(body);
     const answeredBy =
       parsedData.answered_by === 'human' || parsedData.answered_by === 'voicemail'
@@ -161,5 +176,10 @@ export class BlandAIProvider implements CallerProvider {
       summary: parsedData.summary,
       answeredBy,
     });
+  }
+
+  verifyWebhookSignature(signature: string, secret: string, body: any): boolean {
+    const expectedSignature = crypto.createHmac('sha256', secret).update(body).digest('hex');
+    return expectedSignature === signature;
   }
 }

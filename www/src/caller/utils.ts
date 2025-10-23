@@ -1,11 +1,11 @@
 import { CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
 
-const DEXA_PATHWAY_ID = 'eb9825e6-c2aa-4382-a1cd-27c0fe6784a1';
+const DEV_DEXA_PATHWAY_ID = 'eb9825e6-c2aa-4382-a1cd-27c0fe6784a1';
 
 export function getPathwayID(taskType: CareTaskType) {
   switch (taskType) {
     case CareTaskType.DEXA_SCAN:
-      return DEXA_PATHWAY_ID;
+      return process.env.NODE_ENV === 'production' ? null : DEV_DEXA_PATHWAY_ID;
     default:
       return null;
   }
