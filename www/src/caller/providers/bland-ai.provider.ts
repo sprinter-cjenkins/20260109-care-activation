@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
-import { LoggerNoPHI } from '../../logger/logger';
-import { buildRequestData, getPathwayID } from '../utils';
-import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '../utils';
+import { LoggerNoPHI } from '#logger/logger';
+import { buildRequestData, getPathwayID } from '#caller/utils';
+import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '#caller/utils';
 import type { Request } from 'express';
 import crypto from 'node:crypto';
-import { getErrorMessage } from '../../utils';
+import { getErrorMessage } from '#src/utils';
 
 export interface BlandAIResponse {
   status: string;

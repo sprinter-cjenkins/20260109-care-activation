@@ -10,7 +10,7 @@ import type {
   ConversationHistoryMetadataCommonModel,
   ConversationHistoryAnalysisCommonModel,
 } from '@elevenlabs/elevenlabs-js/api';
-import { LoggerNoPHI } from '../../logger/logger';
+import { LoggerNoPHI } from '#logger/logger';
 
 const DEXA_AGENT_ID = 'agent_8401k69cr8xmfzdb1sx8h3w5hf2x';
 const DEXA_PHONE_ID = 'phnum_8301k63sx1zbfd9b07j8ky8cfk28';

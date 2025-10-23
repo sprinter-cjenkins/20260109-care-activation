@@ -20,6 +20,14 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "#caller/*": ["src/caller/*"],
+      "#care-task/*": ["src/care-task/*"],
+      "#logger/*": ["src/logger/*"],
+      "#patient/*": ["src/patient/*"],
+      "#prisma/*": ["src/prisma/*"],
+      "#src/*": ["src/*"]
+    }
   }
 }

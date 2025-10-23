@@ -5,12 +5,12 @@ import {
   EventResultType,
   OutreachChannel,
 } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '#prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
 import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
-import { LoggerNoPHI } from '../logger/logger';
-import { getErrorMessage } from '../utils';
+import { LoggerNoPHI } from '#logger/logger';
+import { getErrorMessage } from '#src/utils';
 
 export interface APICallResult extends CallResult {
   message: string;
