@@ -152,7 +152,7 @@ resource "aws_security_group" "care-activation-dev-ecs-sg" {
 
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = "/ecs/care-activation-${terraform.workspace}"
-  retention_in_days = 7
+  retention_in_days = 365
 }
 
 data "aws_ecr_image" "care_activation" {

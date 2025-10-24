@@ -60,6 +60,11 @@ resource "aws_instance" "ssm_ec2" {
   associate_public_ip_address = false
   key_name                    = "care-activation-${terraform.workspace}-ssm-key" # optional if using SSM only
 
+  metadata_options {
+    http_tokens                 = "required" # This enforces IMDSv2
+    http_endpoint               = "enabled"  # Keep metadata service enabled
+    http_put_response_hop_limit = 1
+  }
   # Run install script at first boot
   user_data = <<-EOF
               #!/bin/bash
