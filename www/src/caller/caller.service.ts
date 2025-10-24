@@ -11,6 +11,7 @@ import { BlandAIProvider } from './providers/bland-ai.provider';
 import type { Request } from 'express';
 import { LoggerNoPHI } from '#logger/logger';
 import { getErrorMessage } from '#src/utils';
+import { incrementMetric } from '#logger/metrics';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -74,10 +75,14 @@ export class CallerService {
 
     let message = '';
     if (callResult.status === 'initiated') {
+      incrementMetric('caller.call_initiated', {
+        taskType,
+      });
       message = 'Call initiated successfully';
-    } else if (callResult.status === 'completed') {
-      message = 'Call completed successfully';
     } else if (callResult.status === 'failed') {
+      incrementMetric('caller.call_failed', {
+        taskType,
+      });
       message = 'Call failed to initiate';
     }
 
@@ -140,6 +145,14 @@ export class CallerService {
           patientId: careTaskEvent.task.patientId,
           channel: OutreachChannel.PHONE,
         },
+      });
+    }
+
+    // Only increment first time we update this, in case we ever hit this code again
+    if (careTaskEvent.status === CareTaskEventStatus.INITIATED && answeredBy) {
+      incrementMetric('caller.call_completed', {
+        taskType: careTaskEvent.task.type as string,
+        answeredBy,
       });
     }
 
