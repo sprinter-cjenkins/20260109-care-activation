@@ -31,6 +31,23 @@
 $ npm install
 ```
 
+## Helpful commands
+
+```bash
+# local prisma studio
+$ npx prisma studio
+
+# regen prisma files
+$ npx prisma generate
+
+# apply prisma migration
+$ npx prisma migrate dev --name <Insert name>
+
+# spin up local mysql
+$ docker-compose up mysql -d
+
+```
+
 ## Compile and run the project
 
 ```bash
