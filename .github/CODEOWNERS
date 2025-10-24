@@ -3,3 +3,4 @@
 # Each line is a file pattern followed by one or more owners.
 
 # Defining owners for the schema graphql file ie schema elders
+* @Pulsetera/care-activation
