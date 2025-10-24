@@ -91,7 +91,7 @@ resource "aws_db_instance" "dev_mysql" {
   password                            = local.db_password
   db_subnet_group_name                = aws_db_subnet_group.care-activation-dev-subnet-group.name
   skip_final_snapshot                 = true
-  publicly_accessible                 = true
+  publicly_accessible                 = false
   multi_az                            = false
   storage_type                        = "gp3"
   backup_retention_period             = 7
