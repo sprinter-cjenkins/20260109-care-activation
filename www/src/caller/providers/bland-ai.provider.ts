@@ -79,6 +79,7 @@ export class BlandAIProvider implements CallerProvider {
           ...(process.env.NODE_ENV !== 'development' && {
             webhook: process.env.BLAND_AI_WEBHOOK_URL,
           }),
+          from: process.env.BLAND_AI_FROM_NUMBER,
         }),
       });
 
