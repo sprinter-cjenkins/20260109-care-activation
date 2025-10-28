@@ -1,6 +1,10 @@
 import tracer from 'dd-trace';
 
-export type Metric = 'caller.call_initiated' | 'caller.call_completed' | 'caller.call_failed';
+export type Metric =
+  | 'caller.call_initiated'
+  | 'caller.call_completed'
+  | 'caller.call_failed'
+  | 'caller.patient_opted_out';
 
 const METRIC_PREFIX = 'care_activation';
 // Tags should be low cardinality

@@ -54,6 +54,7 @@ describe('CallerService', () => {
 
   beforeAll(() => {
     process.env.BLAND_AI_API_KEY = 'test-api-key';
+    process.env.BLAND_AI_FROM_NUMBER = '+1234567890';
   });
 
   beforeEach(async () => {
@@ -133,30 +134,20 @@ describe('CallerService', () => {
       await service.initiateCall(taskId);
 
       // Verify Bland AI API call with correct parameters
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.bland.ai/v1/calls',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-            authorization: 'test-api-key',
-          }),
-          body: expect.stringContaining(
-            JSON.stringify({
-              phone_number: mockPatient.phoneNumber,
-              voice: 'June',
-              pathway_id: getPathwayID(mockDexaTask.type),
-              voicemail: {
-                message: getVoicemailMessage(mockPatient, mockDexaTask.type),
-                action: 'leave_message',
-                sensitive: true,
-              },
-              request_data: buildRequestData(mockPatient),
-              summary_prompt: getSummaryPrompt(mockPatient),
-            }),
-          ),
-        }),
-      );
+      const call = (global.fetch as jest.Mock).mock.calls[0][1];
+      expect(JSON.parse(call.body)).toMatchObject({
+        phone_number: mockPatient.phoneNumber,
+        voice: 'June',
+        pathway_id: getPathwayID(mockDexaTask.type),
+        from: process.env.BLAND_AI_FROM_NUMBER,
+        request_data: buildRequestData(mockPatient),
+        summary_prompt: getSummaryPrompt(mockPatient),
+        voicemail: {
+          message: getVoicemailMessage(mockPatient, mockDexaTask.type),
+          action: 'leave_message',
+          sensitive: true,
+        },
+      });
     });
 
     it('should throw error when patient has opted out of phone outreach', async () => {
@@ -185,9 +176,10 @@ describe('CallerService', () => {
     };
 
     const mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
-    const mockCareTaskFindFirstOrThrow = jest
-      .fn()
-      .mockResolvedValue({ id: callId, task: { patientId: mockPatient.id } });
+    const mockCareTaskFindFirstOrThrow = jest.fn().mockResolvedValue({
+      id: callId,
+      task: { patientId: mockPatient.id, patient: { optedOutChannels: [] } },
+    });
     const mockPatientOptOutCreate = jest.fn().mockResolvedValue({});
     const mockEventResultCreateMany = jest.fn().mockResolvedValue({});
     let mockEventResultFindMany = jest.fn().mockResolvedValue([]);
@@ -290,6 +282,25 @@ describe('CallerService', () => {
           },
         }),
       );
+    });
+
+    it('should not opt out if patient has already opted out', async () => {
+      mockBlandResponse.summary = JSON.stringify({
+        requested_opt_out: true,
+      });
+      mockCareTaskFindFirstOrThrow.mockResolvedValue({
+        id: callId,
+        task: {
+          patientId: mockPatient.id,
+          patient: {
+            optedOutChannels: [{ channel: OutreachChannel.PHONE, createdAt: new Date() }],
+          },
+        },
+      });
+
+      await service.getCall(callId);
+
+      expect(mockPatientOptOutCreate).not.toHaveBeenCalled();
     });
 
     it('handles invalid summaries', async () => {

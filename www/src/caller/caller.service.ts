@@ -131,7 +131,15 @@ export class CallerService {
     const careTaskEvent = await this.prisma.careTaskEvent.findFirstOrThrow({
       where: { externalId: callId },
       include: {
-        task: true,
+        task: {
+          include: {
+            patient: {
+              include: {
+                optedOutChannels: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -139,7 +147,16 @@ export class CallerService {
       throw new Error('Call event not found');
     }
 
-    if (summary?.requested_opt_out) {
+    if (
+      summary?.requested_opt_out &&
+      !careTaskEvent.task.patient.optedOutChannels.some(
+        (channel) => channel.channel === OutreachChannel.PHONE,
+      )
+    ) {
+      incrementMetric('caller.patient_opted_out', {
+        taskType: careTaskEvent.task.type as string,
+        channel: OutreachChannel.PHONE,
+      });
       await this.prisma.patientOptOut.create({
         data: {
           patientId: careTaskEvent.task.patientId,
