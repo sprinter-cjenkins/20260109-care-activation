@@ -77,14 +77,12 @@ data "aws_secretsmanager_secret" "bland_ai_api_key" {
   name = "prod/bland-api-key"
 }
 
-data "aws_secretsmanager_secret_version" "bland_ai_api_key_version" {
-  secret_id = data.aws_secretsmanager_secret.bland_ai_api_key.id
+locals {  
+  # ECS secret references (ARN format for valueFrom)
+  bland_ai_api_key_arn              = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:API_KEY::"
+  bland_webhook_signature_key_arn   = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:WEBHOOK_SIGNATURE_KEY::"
+  bland_webhook_url_arn             = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:WEBHOOK_URL::"
+  bland_from_arn                    = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:FROM::"
+  bland_citation_schema_ids_arn     = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:CITATION_SCHEMA_IDS::"
 }
 
-locals {
-  bland_ai_api_key            = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).API_KEY
-  bland_webhook_signature_key = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).WEBHOOK_SIGNATURE_KEY
-  bland_webhook_url           = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).WEBHOOK_URL
-  bland_from                  = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).FROM
-  bland_citation_schema_ids   = jsondecode(data.aws_secretsmanager_secret_version.bland_ai_api_key_version.secret_string).CITATION_SCHEMA_IDS
-}

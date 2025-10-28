@@ -255,23 +255,23 @@ module "care-activation-dev" {
             },
             {
               name      = "BLAND_API_KEY"
-              valueFrom = local.bland_ai_api_key #data.aws_secretsmanager_secret.bland_ai_api_key.arn
+              valueFrom = local.bland_ai_api_key_arn
             },
             {
-              name      = "WEBHOOK_SIGNATURE_KEY"
-              valueFrom = local.bland_webhook_signature_key #data.aws_secretsmanager_secret.bland_ai_api_key.arn
+              name      = "BLAND_AI_WEBHOOK_SECRET"
+              valueFrom = local.bland_webhook_signature_key_arn
             },
             {
-              name      = "WEBHOOK_URL"
-              valueFrom = local.bland_webhook_url #data.aws_secretsmanager_secret.bland_ai_api_key.arn
+              name      = "BLAND_AI_WEBHOOK_URL"
+              valueFrom = local.bland_webhook_url_arn
             },
             {
-              name      = "FROM"
-              valueFrom = local.bland_from #data.aws_secretsmanager_secret.bland_ai_api_key.arn
+              name      = "BLAND_AI_FROM_NUMBER"
+              valueFrom = local.bland_from_arn
             },
             {
               name      = "CITATION_SCHEMA_IDS"
-              valueFrom = local.bland_citation_schema_ids #data.aws_secretsmanager_secret.bland_ai_api_key.arn
+              valueFrom = local.bland_citation_schema_ids_arn
             }
           ]
 
