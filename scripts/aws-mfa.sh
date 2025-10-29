@@ -1,11 +1,13 @@
 #!/bin/zsh
 set -e
 
-name=""
-IAM_FILE="${HOME}/.aws/care-activation/iam"
-CREDENTIALS_FILE="${HOME}/.aws/care-activation/credentials"
-
-# Hard-coded for care-activation account
+# ---------------------------
+# Config
+# ---------------------------
+CREDENTIALS_FILE="${HOME}/.aws/credentials"
+IAM_FILE="${HOME}/.aws/care-activation-iam"
+BASE_PROFILE="care-activation-base"   # static IAM credentials
+SESSION_PROFILE="care-activation"     # temporary MFA session
 ACCOUNT_ID="417107812602"
 
 # Auto detect IAM name
@@ -19,81 +21,60 @@ then
   # name is set in IAM_FILE
   echo "Username from $IAM_FILE: $name"
 else
-
-  possible_name=""
-
-  if command -v whoami &> /dev/null
-  then
-    possible_name="$(whoami)"
-  fi
-
-  read "name?IAM profile name [$possible_name]: "
-
-  if [ "$name" = "" ]
-  then
-    name="$possible_name"
-  fi
+  echo "No username found in $IAM_FILE"
+  exit 1
 fi
 
-if [ "$name" = "" ]
-then
-  echo "Username is required!"
-  exit
-fi
-
-if [ ! -z $1 ]; then
-  re='^[0-9]+$'
-  if ! [[ $1 =~ $re ]]; then
-    echo "error: Not a number" >&2;
-  else
-    if [ ${#1} -ne 6 ]; then
-      echo "error: Not in range" >&2;
-    else
-      code=$1
+# ---------------------------
+# MFA code
+# ---------------------------
+if [[ -n $1 ]]; then
+    if [[ ! $1 =~ ^[0-9]{6}$ ]]; then
+        echo "ERROR: MFA code must be 6 digits"
+        exit 1
     fi
-  fi
-fi
-
-if [ -z $code ]; then
-  read "code?MFA 6 digit code: "
+    MFA_CODE=$1
 else
-  echo "MFA 6 digit code: $code";
+    read "MFA_CODE?Enter 6-digit MFA code: "
 fi
 
-echo "Using care-activation account (417107812602)"
-echo "Reading from: $CREDENTIALS_FILE"
+# ---------------------------
+# Ensure credentials file exists
+# ---------------------------
+mkdir -p "$(dirname "$CREDENTIALS_FILE")"
+touch "$CREDENTIALS_FILE"
 
-echo "Using username: $name"
-echo "MFA Serial: arn:aws:iam::$ACCOUNT_ID:mfa/$name"
-
-# Export custom credentials file location for this command
 export AWS_SHARED_CREDENTIALS_FILE="$CREDENTIALS_FILE"
 
-echo "Verifying credentials in $CREDENTIALS_FILE..."
-aws sts get-caller-identity --profile default 2>&1 || {
-  echo "ERROR: Could not read credentials from $CREDENTIALS_FILE"
-  echo "Make sure you have the correct credentials set up"
-  exit 1
-}
-echo ""
-
-JSON=$(aws sts get-session-token --serial-number arn:aws:iam::$ACCOUNT_ID:mfa/$name --token-code $code --profile default --duration-seconds 129600)
+# ---------------------------
+# Get temporary session token
+# ---------------------------
+JSON=$(aws sts get-session-token \
+    --serial-number "arn:aws:iam::$ACCOUNT_ID:mfa/$IAM_USER" \
+    --token-code "$MFA_CODE" \
+    --profile "$BASE_PROFILE" \
+    --duration-seconds 129600)
 
 ACCESS=$(echo $JSON | grep -o '"AccessKeyId": *"[^"]*' | grep -o '[^"]*$')
 SECRET=$(echo $JSON | grep -o '"SecretAccessKey": *"[^"]*' | grep -o '[^"]*$')
 TOKEN=$(echo $JSON | grep -o '"SessionToken": *"[^"]*' | grep -o '[^"]*$')
 
-# if we dont have mfa in the credentials file, add it...
-if grep -q "\[default\]" "$CREDENTIALS_FILE" 2>/dev/null; then
-  sed -i '' '/\[default\]/{N;N;N;N;d;}' "$CREDENTIALS_FILE"
+# ---------------------------
+# Update credentials file with care-activation session profile
+# ---------------------------
+if grep -q "\[$SESSION_PROFILE\]" "$CREDENTIALS_FILE" 2>/dev/null; then
+    sed -i '' "/\[$SESSION_PROFILE\]/,/^$/d" "$CREDENTIALS_FILE"
 fi
 
-mkdir -p ~/.aws/care-activation
 cat <<EOT >> "$CREDENTIALS_FILE"
-[default]
+[$SESSION_PROFILE]
 aws_access_key_id=$ACCESS
 aws_secret_access_key=$SECRET
 aws_session_token=$TOKEN
 EOT
 
-echo "Token successfully updated in $CREDENTIALS_FILE!"
+# ---------------------------
+# Feedback
+# ---------------------------
+echo "✅ MFA session updated for profile [$SESSION_PROFILE] in $CREDENTIALS_FILE"
+echo "Run: export AWS_PROFILE=$SESSION_PROFILE"
