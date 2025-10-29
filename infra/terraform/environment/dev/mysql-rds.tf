@@ -101,9 +101,9 @@ resource "aws_db_instance" "dev_mysql" {
   iam_database_authentication_enabled = true
   network_type                        = "IPV4"
   parameter_group_name                = aws_db_parameter_group.care-activation-dev-mysql-ssl.name
-  #performance_insights_retention_period = 7
-  #performance_insights_kms_key_id       = aws_kms_key.care-activation-mysql-dev-kms-key.arn
-  #performance_insights_enabled          = true
+  performance_insights_retention_period = 7
+  performance_insights_kms_key_id       = aws_kms_key.care-activation-mysql-dev-kms-key.arn
+  performance_insights_enabled          = true
   storage_encrypted = true
   kms_key_id        = aws_kms_key.care-activation-mysql-dev-kms-key.arn
 
