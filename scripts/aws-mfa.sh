@@ -50,7 +50,7 @@ export AWS_SHARED_CREDENTIALS_FILE="$CREDENTIALS_FILE"
 # Get temporary session token
 # ---------------------------
 JSON=$(aws sts get-session-token \
-    --serial-number "arn:aws:iam::$ACCOUNT_ID:mfa/$IAM_USER" \
+    --serial-number "arn:aws:iam::$ACCOUNT_ID:mfa/$name" \
     --token-code "$MFA_CODE" \
     --profile "$BASE_PROFILE" \
     --duration-seconds 129600)
