@@ -272,6 +272,10 @@ module "care-activation-dev" {
             {
               name      = "CITATION_SCHEMA_IDS"
               valueFrom = local.bland_citation_schema_ids_arn
+            },
+            {
+              name      = "CUSTOMER_API_KEYS_MAP"
+              valueFrom = local.ca_api_keys_arn
             }
           ]
 

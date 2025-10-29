@@ -1,6 +1,7 @@
 import { Controller, Post, Param, HttpCode, HttpStatus, Get, Req } from '@nestjs/common';
 import { CallerService, APICallResult } from './caller.service';
 import type { Request } from 'express';
+import { Public } from '#src/auth/public.decorator';
 
 @Controller('caller')
 export class CallerController {
@@ -19,6 +20,7 @@ export class CallerController {
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
+  @Public()
   async handleWebhook(@Req() req: Request): Promise<{ status: string }> {
     try {
       await this.callerService.handleWebhook(req);

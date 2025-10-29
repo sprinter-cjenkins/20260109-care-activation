@@ -19,12 +19,15 @@ tracer.init({
   },
 });
 
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
+import { ApiKeyGuard } from './auth/api-key.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useGlobalGuards(new ApiKeyGuard(new Reflector()));
   // Configure raw body parsing for webhook endpoint
   app.use('/caller/webhook', bodyParser.raw({ type: '*/*' }));
   await app.listen(process.env.PORT ?? 3000);

@@ -77,6 +77,12 @@ data "aws_secretsmanager_secret" "bland_ai_api_key" {
   name = "prod/bland-api-key"
 }
 
+# API Keys
+data "aws_secretsmanager_secret" "ca_api_keys" {
+  name = "prod/ca-api-keys"
+}
+
+
 locals {  
   # ECS secret references (ARN format for valueFrom)
   bland_ai_api_key_arn              = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:API_KEY::"
@@ -84,5 +90,6 @@ locals {
   bland_webhook_url_arn             = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:WEBHOOK_URL::"
   bland_from_arn                    = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:FROM::"
   bland_citation_schema_ids_arn     = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:CITATION_SCHEMA_IDS::"
+  ca_api_keys_arn                   = data.aws_secretsmanager_secret.ca_api_keys.arn
 }
 
