@@ -1,4 +1,4 @@
-# WAF Web ACL for ALB rate limiting (testing limits)
+# WAF Web ACL for ALB with comprehensive protection
 resource "aws_wafv2_web_acl" "care_activation_alb" {
   name  = "care-activation-${terraform.workspace}-alb-waf"
   scope = "REGIONAL"
@@ -7,10 +7,84 @@ resource "aws_wafv2_web_acl" "care_activation_alb" {
     allow {}
   }
 
-  # Global rate limit for all endpoints
+  # 1. AWS Managed Rules - Common Rule Set (protects against OWASP Top 10)
   rule {
-    name     = "rate-limit-global"
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 0
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesCommonRuleSet"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesCommonRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # 2. AWS Managed Rules - Known Bad Inputs
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
     priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesKnownBadInputsMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # 3. Geographic restrictions - Block high-risk countries
+  rule {
+    name     = "geo-block-high-risk"
+    priority = 2
+
+    action {
+      block {
+        custom_response {
+          response_code = 403
+        }
+      }
+    }
+
+    statement {
+      geo_match_statement {
+        # Adjust this list based on your business needs
+        # Common high-risk countries for abuse (not exhaustive)
+        country_codes = ["CN", "RU", "KP", "IR"]
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "geo-block-metric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # 4. Per-IP rate limit - Protect against single-source floods
+  rule {
+    name     = "rate-limit-per-ip"
+    priority = 3
 
     action {
       block {
@@ -29,7 +103,7 @@ resource "aws_wafv2_web_acl" "care_activation_alb" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "rate-limit-global"
+      metric_name                = "rate-limit-per-ip"
       sampled_requests_enabled   = true
     }
   }
@@ -50,17 +124,4 @@ resource "aws_wafv2_web_acl" "care_activation_alb" {
 resource "aws_wafv2_web_acl_association" "care_activation_alb" {
   resource_arn = aws_lb.care-activation-dev.arn
   web_acl_arn  = aws_wafv2_web_acl.care_activation_alb.arn
-}
-
-# Output WAF details
-output "waf_web_acl_id" {
-  value       = aws_wafv2_web_acl.care_activation_alb.id
-  description = "WAF Web ACL ID"
-}
-
-output "waf_metrics" {
-  value = {
-    global_metric  = "rate-limit-global"
-  }
-  description = "CloudWatch metric names for WAF rules"
 }
