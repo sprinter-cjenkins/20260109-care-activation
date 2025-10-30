@@ -80,32 +80,58 @@ resource "aws_db_parameter_group" "care-activation-dev-mysql-ssl" {
     Project     = "care-activation"
   }
 }
+resource "aws_iam_role" "rds_monitoring_role" {
+
+  name = "rds-monitoring-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "monitoring.rds.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy_attachment" "rds_monitoring_attachment" {
+
+  name       = "rds-monitoring-attachment"
+  roles      = [aws_iam_role.rds_monitoring_role.name]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
 
 resource "aws_db_instance" "dev_mysql" {
-  identifier                          = "care-activation-${terraform.workspace}-mysql-db"
-  engine                              = "mysql"
-  engine_version                      = "8.0"
-  instance_class                      = "db.x2g.large"
-  allocated_storage                   = 60
-  username                            = local.db_username
-  password                            = local.db_password
-  db_subnet_group_name                = aws_db_subnet_group.care-activation-dev-subnet-group.name
-  skip_final_snapshot                 = true
-  publicly_accessible                 = false
-  multi_az                            = false
-  storage_type                        = "gp3"
-  backup_retention_period             = 7
-  deletion_protection                 = false
-  auto_minor_version_upgrade          = true
-  delete_automated_backups            = true
-  iam_database_authentication_enabled = true
-  network_type                        = "IPV4"
-  parameter_group_name                = aws_db_parameter_group.care-activation-dev-mysql-ssl.name
-  performance_insights_retention_period = 7
+  identifier                            = "care-activation-${terraform.workspace}-mysql-db"
+  engine                                = "mysql"
+  engine_version                        = "8.0"
+  instance_class                        = "db.x2g.large"
+  allocated_storage                     = 60
+  username                              = local.db_username
+  password                              = local.db_password
+  db_subnet_group_name                  = aws_db_subnet_group.care-activation-dev-subnet-group.name
+  skip_final_snapshot                   = true
+  publicly_accessible                   = false
+  multi_az                              = false
+  storage_type                          = "gp3"
+  backup_retention_period               = 7
+  deletion_protection                   = false
+  auto_minor_version_upgrade            = true
+  delete_automated_backups              = true
+  iam_database_authentication_enabled   = true
+  network_type                          = "IPV4"
+  parameter_group_name                  = aws_db_parameter_group.care-activation-dev-mysql-ssl.name
+  database_insights_mode                = "advanced"
+  performance_insights_retention_period = 465
   performance_insights_kms_key_id       = aws_kms_key.care-activation-mysql-dev-kms-key.arn
   performance_insights_enabled          = true
-  storage_encrypted = true
-  kms_key_id        = aws_kms_key.care-activation-mysql-dev-kms-key.arn
+  monitoring_interval                   = 60
+  monitoring_role_arn                   = aws_iam_role.rds_monitoring_role.arn
+  storage_encrypted                     = true
+  kms_key_id                            = aws_kms_key.care-activation-mysql-dev-kms-key.arn
 
   vpc_security_group_ids = [
     aws_security_group.care-activation-dev-subnet-app-rds-sg.id,

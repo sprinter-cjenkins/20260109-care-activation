@@ -96,7 +96,7 @@ resource "aws_wafv2_web_acl" "care_activation_alb" {
 
     statement {
       rate_based_statement {
-        limit              = 250  # 250 requests per 5 minutes per IP
+        limit              = 250 # 250 requests per 5 minutes per IP
         aggregate_key_type = "IP"
       }
     }
