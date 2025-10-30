@@ -135,7 +135,7 @@ describe('CallerService', () => {
 
       // Verify Bland AI API call with correct parameters
       const call = (global.fetch as jest.Mock).mock.calls[0][1];
-      expect(JSON.parse(call.body)).toMatchObject({
+      expect(JSON.parse(call.body as string) as Record<string, unknown>).toMatchObject({
         phone_number: mockPatient.phoneNumber,
         voice: 'June',
         pathway_id: getPathwayID(mockDexaTask.type),

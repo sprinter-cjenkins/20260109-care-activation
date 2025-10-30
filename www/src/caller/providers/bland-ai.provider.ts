@@ -194,7 +194,7 @@ export class BlandAIProvider implements CallerProvider {
     });
   }
 
-  verifyWebhookSignature(signature: string, secret: string, body: any): boolean {
+  verifyWebhookSignature(signature: string, secret: string, body: string): boolean {
     const expectedSignature = crypto.createHmac('sha256', secret).update(body).digest('hex');
     return expectedSignature === signature;
   }

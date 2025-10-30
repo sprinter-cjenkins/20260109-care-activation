@@ -171,7 +171,7 @@ export class ElevenLabsProvider implements CallerProvider {
     }
 
     try {
-      await this.client.webhooks.constructEvent(req.body, headers, secret);
+      await this.client.webhooks.constructEvent(req.body as string, headers, secret);
       const parsedBody = (req.body as Buffer).toString('utf8');
 
       // TODO get real typing

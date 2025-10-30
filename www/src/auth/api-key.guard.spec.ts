@@ -6,7 +6,11 @@ describe('ApiKeyGuard', () => {
   let guard: ApiKeyGuard;
   let reflector: Reflector;
   let mockExecutionContext: ExecutionContext;
-  let mockRequest: any;
+  let mockRequest: {
+    headers: {
+      'x-api-key'?: string;
+    };
+  };
 
   beforeEach(() => {
     reflector = new Reflector();
