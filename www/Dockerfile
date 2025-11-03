@@ -1,5 +1,8 @@
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:20.19.5-alpine AS builder
+
+ENV NODE_VERSION=20.19.5
+ENV NPM_VERSION=10.8.2
 
 WORKDIR /app
 
@@ -17,7 +20,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Stage 2: Production image
-FROM node:20-alpine
+FROM node:20.19.5-alpine
 
 WORKDIR /app
 
