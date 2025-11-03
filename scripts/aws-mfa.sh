@@ -14,14 +14,21 @@ ACCOUNT_ID="417107812602"
 if [ -f "$IAM_FILE" ];
 then
   name=`cat ${IAM_FILE}`
+  echo "Username from $IAM_FILE: $name"
 fi
 
-if [ "$name" != "" ];
+# If we don't find the name there, try `username + -ca` because thats what mine is
+if [ "$name" = "" ] && command -v whoami &> /dev/null;
 then
-  # name is set in IAM_FILE
-  echo "Username from $IAM_FILE: $name"
-else
-  echo "No username found in $IAM_FILE"
+
+  name="$(whoami)-ca"  
+  echo "username autofilled to: $name"
+  echo "if this doesn't work, set your name in ~/.aws/care-activation-iam"
+fi
+
+if [ "$name" = "" ];
+then
+  echo "No username found in $IAM_FILE or whoami"
   exit 1
 fi
 
