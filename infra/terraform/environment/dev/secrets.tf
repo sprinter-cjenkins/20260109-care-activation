@@ -90,6 +90,7 @@ locals {
   bland_webhook_url_arn           = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:WEBHOOK_URL::"
   bland_from_arn                  = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:FROM::"
   bland_citation_schema_ids_arn   = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:CITATION_SCHEMA_IDS::"
+  bland_twilio_encrypted_key_arn  = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:TWILIO_ENCRYPTED_KEY::"
   ca_api_keys_arn                 = data.aws_secretsmanager_secret.ca_api_keys.arn
 }
 

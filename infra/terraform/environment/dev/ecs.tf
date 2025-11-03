@@ -274,6 +274,10 @@ module "care-activation-dev" {
               valueFrom = local.bland_citation_schema_ids_arn
             },
             {
+              name      = "BLAND_AI_TWILIO_ENCRYPTED_KEY"
+              valueFrom = local.bland_twilio_encrypted_key_arn
+            },
+            {
               name      = "CUSTOMER_API_KEYS_MAP"
               valueFrom = local.ca_api_keys_arn
             }
