@@ -55,6 +55,7 @@ describe('CallerService', () => {
   beforeAll(() => {
     process.env.BLAND_AI_API_KEY = 'test-api-key';
     process.env.BLAND_AI_FROM_NUMBER = '+1234567890';
+    process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY = 'test-encrypted-key';
   });
 
   beforeEach(async () => {

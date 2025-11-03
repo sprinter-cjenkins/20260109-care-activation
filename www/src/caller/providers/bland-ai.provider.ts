@@ -52,6 +52,10 @@ export class BlandAIProvider implements CallerProvider {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
+    if (!process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY) {
+      throw new Error('BLAND_AI_TWILIO_ENCRYPTED_KEY environment variable not set');
+    }
+
     const pathwayId = getPathwayID(taskType);
 
     if (!pathwayId) {
@@ -64,6 +68,7 @@ export class BlandAIProvider implements CallerProvider {
         headers: {
           'Content-Type': 'application/json',
           authorization: this.blandApiKey,
+          encrypted_key: process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY,
         },
         body: JSON.stringify({
           phone_number: patient.phoneNumber,

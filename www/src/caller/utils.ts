@@ -43,7 +43,7 @@ export function buildRequestData(patient: Patient) {
 }
 
 export function getVoicemailMessage(patient: Patient, taskType: CareTaskType) {
-  return `Hi, This is Sprinty from Sprinter Health calling on behalf of ${getPartnerOrganizationName(patient.partnerOrganization)} from Sprinter Health to help you schedule your ${getNameOfTask(taskType)}. Please call us back at two zero nine, three seven zero, zero two zero nine. Thank you so much, and have a wonderful day!`;
+  return `Hi, This is Sprinty calling on behalf of ${getPartnerOrganizationName(patient.partnerOrganization)} from Sprinter Health to help you schedule your ${getNameOfTask(taskType)}. Please call us back at two zero nine, three seven zero, zero two zero nine. Thank you so much, and have a wonderful day!`;
 }
 
 // 2k character limit
