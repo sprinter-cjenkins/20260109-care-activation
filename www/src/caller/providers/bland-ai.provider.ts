@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
 import { LoggerNoPHI } from '#logger/logger';
-import { buildRequestData, getPathwayID } from '#caller/utils';
+import { buildRequestData, getCitationSchemaID, getPathwayID } from '#caller/utils';
 import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '#caller/utils';
 import type { Request } from 'express';
 import crypto from 'node:crypto';
@@ -81,6 +81,7 @@ export class BlandAIProvider implements CallerProvider {
           },
           request_data: buildRequestData(patient),
           summary_prompt: getSummaryPrompt(patient),
+          citation_schema_ids: [getCitationSchemaID(taskType)],
           ...(process.env.NODE_ENV !== 'development' && {
             webhook: process.env.BLAND_AI_WEBHOOK_URL,
           }),
@@ -161,7 +162,9 @@ export class BlandAIProvider implements CallerProvider {
       requested_opt_out: false,
     };
     try {
-      parsedSummary = JSON.parse(cleanJsonString(summary)) as BlandAISummary;
+      // sometimes the LLM wraps the json string with "Here is the json string" or something like that
+      const croppedJSONSummary = summary.slice(summary.indexOf('{'), summary.lastIndexOf('}') + 1);
+      parsedSummary = JSON.parse(cleanJsonString(croppedJSONSummary)) as BlandAISummary;
     } catch (error) {
       this.logger.error(`Failed to parse summary:`, {
         error: getErrorMessage(error),
