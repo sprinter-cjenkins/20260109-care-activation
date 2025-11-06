@@ -40,6 +40,35 @@ resource "aws_iam_role" "ca_terraform_ro_role" {
     ]
   })
 }
+resource "aws_iam_role" "ca_terraform_rw_role" {
+  name                 = "${var.resource_name}-${terraform.workspace}-terraform-rw-role"
+  path                 = "/"
+  max_session_duration = 3600
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:Pulsetera/${var.resource_name}:*"
+          }
+          StringNotEquals = {
+            "token.actions.githubusercontent.com:sub" = "repo:Pulsetera/${var.resource_name}:ref:refs/heads/main"
+          }
+        }
+      }
+    ]
+  })
+}
 
 # Inline S3 policy
 resource "aws_iam_policy" "terraforms3backend_inline_policy" {
@@ -79,9 +108,17 @@ resource "aws_iam_role_policy_attachment" "readonly_access_attachment" {
   role       = aws_iam_role.ca_terraform_ro_role.name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
+resource "aws_iam_role_policy_attachment" "systemadmin_access_attachment" {
+  role       = aws_iam_role.ca_terraform_rw_role.name
+  policy_arn = "arn:aws:iam::aws:policy/job-function/SystemAdministrator"
+}
 
 # Attach inline policy
 resource "aws_iam_role_policy_attachment" "terraforms3backend_inline_policy_attachment" {
   role       = aws_iam_role.ca_terraform_ro_role.name
+  policy_arn = aws_iam_policy.terraforms3backend_inline_policy.arn
+}
+resource "aws_iam_role_policy_attachment" "ca_terraform_rw_role_inline_policy_attachment" {
+  role       = aws_iam_role.ca_terraform_rw_role.name
   policy_arn = aws_iam_policy.terraforms3backend_inline_policy.arn
 }
