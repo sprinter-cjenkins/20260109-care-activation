@@ -110,7 +110,7 @@ resource "aws_iam_role_policy_attachment" "readonly_access_attachment" {
 }
 resource "aws_iam_role_policy_attachment" "systemadmin_access_attachment" {
   role       = aws_iam_role.ca_terraform_rw_role.name
-  policy_arn = "arn:aws:iam::aws:policy/job-function/SystemAdministrator"
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
 # Attach inline policy
