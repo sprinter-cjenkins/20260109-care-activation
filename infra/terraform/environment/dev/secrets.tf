@@ -42,7 +42,7 @@ resource "aws_kms_key" "care-activation-mysql-dev-kms-key" {
             "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/cjenkins-ca",
             "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/jpaad-ca",
             "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/skumar-ca",
-            "arn:aws:sts::${data.aws_caller_identity.current.account_id}:assumed-role/care-activation-dev-terraform-rw-role/*"
+            "arn:aws:sts::${data.aws_caller_identity.current.account_id}:assumed-role/care-activation-dev-terraform-rw-role/1047120019-sprinter-cjenkins"
           ]
         }
         Action = [
