@@ -38,22 +38,12 @@ resource "aws_kms_key" "care-activation-mysql-dev-kms-key" {
         Sid    = "Allow administration of the key"
         Effect = "Allow"
         Principal = {
-          AWS = ["*"]
+          AWS = "*"
         }
         Action = [
           "kms:*"
         ]
         Resource = "*"
-        "Condition": {
-          "ArnLike": {
-            "aws:PrincipalArn": [
-              "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/jpaad-ca",
-              "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/skumar-ca",
-              "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/cjenkins-ca",
-              "arn:aws:sts::${data.aws_caller_identity.current.account_id}:assumed-role/care-activation-dev-terraform-rw-role/1047120019-*"
-            ]
-          }
-        }
       },
       {
         Sid    = "Allow RDS usage of the key"
