@@ -21,12 +21,7 @@ permissions:
 jobs:
   terraform-auto-apply:
     name: Terraform Auto Apply
-    needs: security-validation
-
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        base-environments: [${input.AWS_ENV}]
 
     env:
       TF_IN_AUTOMATION: 1
@@ -41,7 +36,7 @@ jobs:
         with:
           role-to-assume: >-
             ${{
-              matrix.base-environments == 'prod' &&
+              inputs.AWS_ENV == 'prod' &&
               'arn:aws:iam::417107812602:role/care-activation-prod-terraform-rw-role' ||
               'arn:aws:iam::417107812602:role/care-activation-dev-terraform-rw-role'
             }}
@@ -52,7 +47,7 @@ jobs:
         run: |
           mkdir -p ~/.aws
           cat <<EOF > ~/.aws/credentials
-          [${{ matrix.base-environments }}]
+          [${{ inputs.AWS_ENV }}]
           aws_access_key_id=${AWS_ACCESS_KEY_ID}
           aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
           aws_session_token=${AWS_SESSION_TOKEN}
@@ -65,12 +60,12 @@ jobs:
 
       - name: Terraform Init
         id: init
-        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ inputs.AWS_ENV }}
         run: |
           terraform init -input=false
-          terraform workspace select ${{ matrix.base-environments }}
+          terraform workspace select ${{ inputs.AWS_ENV }}
 
       - name: terraform Apply
         id: plan
-        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
-        run: terraform apply --auto-approve --var-file=${{ matrix.base-environments }}.tfvars
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ inputs.AWS_ENV }}
+        run: terraform apply --auto-approve --var-file=${{ inputs.AWS_ENV }}.tfvars
