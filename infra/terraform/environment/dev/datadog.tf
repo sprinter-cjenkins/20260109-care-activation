@@ -97,7 +97,7 @@ resource "aws_ecs_task_definition" "datadog_task" {
       environment = [
         { name = "DD_API_KEY", value = data.aws_secretsmanager_secret_version.datadog_api_key.secret_string },
         { name = "DD_SITE", value = "us3.datadoghq.com" },
-        { name = "DD_APM_ENABLED", value = "false" },
+        { name = "DD_APM_ENABLED", value = "true" },
         { name = "ECS_FARGATE", value = "true" }
       ]
     }
