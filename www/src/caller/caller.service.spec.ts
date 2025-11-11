@@ -92,13 +92,6 @@ describe('CallerService', () => {
 
     // Reset mocks
     jest.clearAllMocks();
-
-    // Set up environment variable
-    process.env.BLAND_AI_API_KEY = 'test-api-key';
-  });
-
-  afterAll(() => {
-    delete process.env.BLAND_AI_API_KEY;
   });
 
   describe('initiateCall', () => {

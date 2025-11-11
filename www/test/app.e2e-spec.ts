@@ -8,6 +8,10 @@ describe('App E2E (Patients)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
+    process.env.BLAND_AI_API_KEY = 'test-api-key';
+    process.env.BLAND_AI_FROM_NUMBER = '+1234567890';
+    process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY = 'test-encrypted-key';
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
@@ -24,7 +28,6 @@ describe('App E2E (Patients)', () => {
 
     app = moduleRef.createNestApplication();
 
-    process.env.CUSTOMER_API_KEYS_MAP = JSON.stringify({ client1: 'valid-key' });
     await app.init();
   });
 
