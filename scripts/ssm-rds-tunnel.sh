@@ -4,12 +4,6 @@
 
 #set -euo pipefail
 
-if [[ $USERNAME == "cjenkins" ]]; then
-  export AWS_PROFILE=ca
-else
-  echo "Not Mr. Jenkins"
-fi
-
 LOCAL_PORT="${1:-3306}"
 REMOTE_PORT=3306
 EC2_TAG_NAME="care-activation-dev-ssm-ec2"
