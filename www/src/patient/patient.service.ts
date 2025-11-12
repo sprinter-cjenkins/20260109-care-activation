@@ -2,16 +2,28 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Patient, Prisma } from '@prisma/client';
 
+export const patientNameAndTelecomInclude = {
+  telecom: true,
+  name: true,
+} satisfies Prisma.PatientInclude;
+
+export type PatientPayload = Prisma.PatientGetPayload<{
+  include: typeof patientNameAndTelecomInclude;
+}>;
+
 @Injectable()
 export class PatientService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<Patient[]> {
-    return this.prisma.patient.findMany();
+  async findAll(): Promise<PatientPayload[]> {
+    return this.prisma.patient.findMany({ include: patientNameAndTelecomInclude });
   }
 
-  async findOne(id: string): Promise<Patient | null> {
-    return this.prisma.patient.findUnique({ where: { id } });
+  async findOne(id: string): Promise<PatientPayload | null> {
+    return this.prisma.patient.findUnique({
+      where: { id },
+      include: patientNameAndTelecomInclude,
+    });
   }
 
   async findWhere(query: Prisma.PatientWhereInput): Promise<Patient[]> {
@@ -32,11 +44,11 @@ export class PatientService {
 
   async createOrUpdate(data: Prisma.PatientCreateInput): Promise<Patient> {
     const existingPatients = await this.findWhere({
-      externalId: data.externalId,
+      externalID: data.externalID,
       birthDate: data.birthDate,
     });
     if (existingPatients.length > 1) {
-      throw new Error('Multiple patients found with the same externalId and birthDate');
+      throw new Error('Multiple patients found with the same externalID and birthDate');
     }
     if (existingPatients.length === 1) {
       return this.update(existingPatients[0].id, data);

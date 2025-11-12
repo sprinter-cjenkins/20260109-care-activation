@@ -8,11 +8,11 @@ export class CareTaskController {
 
   @Get()
   findAll(
-    @Query('patientId') patientId?: string,
+    @Query('patientID') patientID?: string,
     @Query('status') status?: string,
   ): Promise<CareTask[]> {
-    if (patientId) {
-      return this.careTaskService.findByPatient(patientId);
+    if (patientID) {
+      return this.careTaskService.findByPatient(patientID);
     }
     if (status && status in CareTaskStatus) {
       return this.careTaskService.findByStatus(status as CareTaskStatus);
@@ -25,15 +25,15 @@ export class CareTaskController {
     return this.careTaskService.findOne(id);
   }
 
-  @Post('createByExternalId')
-  createByExternalId(
+  @Post('createByExternalID')
+  createByExternalID(
     @Body()
     data: {
-      externalId: string;
-      taskData: Omit<Prisma.CareTaskCreateInput, 'patientId' | 'patient'>;
+      externalID: string;
+      taskData: Omit<Prisma.CareTaskCreateInput, 'patientID' | 'patient'>;
     },
   ): Promise<CareTask> {
-    return this.careTaskService.createByExternalId(data.externalId, data.taskData);
+    return this.careTaskService.createByExternalID(data.externalID, data.taskData);
   }
 
   @Put(':id')

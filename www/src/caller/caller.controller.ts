@@ -7,15 +7,15 @@ import { Public } from '#src/auth/public.decorator';
 export class CallerController {
   constructor(private readonly callerService: CallerService) {}
 
-  @Post('initiate/:taskId')
+  @Post('initiate/:taskID')
   @HttpCode(HttpStatus.OK)
-  async initiateCall(@Param('taskId') taskId: string): Promise<APICallResult> {
-    return this.callerService.initiateCall(taskId);
+  async initiateCall(@Param('taskID') taskID: string): Promise<APICallResult> {
+    return this.callerService.initiateCall(taskID);
   }
 
-  @Get('status/:callId')
-  async getCall(@Param('callId') callId: string): Promise<APICallResult> {
-    return await this.callerService.getCall(callId);
+  @Get('status/:callID')
+  async getCall(@Param('callID') callID: string): Promise<APICallResult> {
+    return await this.callerService.getCall(callID);
   }
 
   @Post('webhook')

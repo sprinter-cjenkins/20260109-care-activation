@@ -6,6 +6,7 @@ import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '#caller/
 import type { Request } from 'express';
 import crypto from 'node:crypto';
 import { getErrorMessage } from '#src/utils';
+import { getPatientPhoneNumber } from '#patient/utils';
 
 export interface BlandAIResponse {
   status: string;
@@ -84,11 +85,11 @@ export class BlandAIProvider implements CallerProvider {
   }
 
   async initiateCall(request: CallInitiationRequest): Promise<CallResult> {
-    const { patient, taskType } = request;
+    const { patient, careTaskType } = request;
 
-    const pathwayId = getPathwayID(taskType);
+    const pathwayID = getPathwayID(careTaskType);
 
-    if (!pathwayId) {
+    if (!pathwayID) {
       throw new Error('Pathway ID not found');
     }
 
@@ -101,17 +102,17 @@ export class BlandAIProvider implements CallerProvider {
           encrypted_key: this.encryptedKey,
         },
         body: JSON.stringify({
-          phone_number: patient.phoneNumber,
+          phone_number: getPatientPhoneNumber(patient),
           voice: 'June',
-          pathway_id: getPathwayID(taskType),
+          pathway_id: getPathwayID(careTaskType),
           voicemail: {
-            message: getVoicemailMessage(patient, taskType),
+            message: getVoicemailMessage(patient, careTaskType),
             action: 'leave_message',
             sensitive: true,
           },
           request_data: buildRequestData(patient),
           summary_prompt: getSummaryPrompt(patient),
-          citation_schema_ids: [getCitationSchemaID(taskType)],
+          citation_schema_ids: [getCitationSchemaID(careTaskType)],
           ...(process.env.NODE_ENV !== 'development' && {
             webhook: process.env.BLAND_AI_WEBHOOK_URL,
           }),
@@ -131,24 +132,24 @@ export class BlandAIProvider implements CallerProvider {
       this.logger.log(`Call initiated successfully: ${data.call_id}`);
 
       return {
-        callId: data.call_id,
+        callID: data.call_id,
         status: 'initiated',
       };
     } catch (error) {
       this.logger.error(`Failed to initiate call:`, { error: getErrorMessage(error) });
       return {
-        callId: '',
+        callID: '',
         status: 'failed',
       };
     }
   }
-  async getCall(callId: string): Promise<CallResult> {
+  async getCall(callID: string): Promise<CallResult> {
     if (!this.blandAPIKey) {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
     try {
-      const response = await fetch(`${this.blandAPIURL}/calls/${callId}`, {
+      const response = await fetch(`${this.blandAPIURL}/calls/${callID}`, {
         method: 'GET',
         headers: {
           authorization: this.blandAPIKey,
@@ -169,7 +170,7 @@ export class BlandAIProvider implements CallerProvider {
           ? parsedData.answered_by
           : undefined;
       return {
-        callId: parsedData.call_id || callId,
+        callID: parsedData.call_id || callID,
         status: data.status === 'completed' ? 'completed' : 'initiated',
         summary: parsedData.summary,
         answeredBy,
@@ -177,7 +178,7 @@ export class BlandAIProvider implements CallerProvider {
     } catch (error) {
       this.logger.error(`Failed to get call status:`, { error: getErrorMessage(error) });
       return {
-        callId: callId,
+        callID: callID,
         status: 'failed',
       };
     }
@@ -198,7 +199,7 @@ export class BlandAIProvider implements CallerProvider {
     } catch (error) {
       this.logger.error(`Failed to parse summary:`, {
         error: getErrorMessage(error),
-        externalCallId: call_id,
+        externalCallID: call_id,
       });
       parsedSummary.other.push({ key: 'failureReason', value: summary });
     }
@@ -225,7 +226,7 @@ export class BlandAIProvider implements CallerProvider {
         ? parsedData.answered_by
         : undefined;
     return Promise.resolve({
-      callId: parsedData.call_id,
+      callID: parsedData.call_id,
       status: parsedData.answered_by != null ? 'completed' : 'initiated',
       summary: parsedData.summary,
       answeredBy,

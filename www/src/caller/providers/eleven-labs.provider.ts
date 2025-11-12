@@ -11,6 +11,7 @@ import type {
   ConversationHistoryAnalysisCommonModel,
 } from '@elevenlabs/elevenlabs-js/api';
 import { LoggerNoPHI } from '#logger/logger';
+import { getPatientFamilyName, getPatientFirstName, getPatientPhoneNumber } from '#patient/utils';
 
 const DEXA_AGENT_ID = 'agent_8401k69cr8xmfzdb1sx8h3w5hf2x';
 const DEXA_PHONE_ID = 'phnum_8301k63sx1zbfd9b07j8ky8cfk28';
@@ -19,7 +20,7 @@ interface GetConversationResponse {
   agent_id: string;
   conversation_id: string;
   status: GetConversationResponseModelStatus;
-  userId?: string;
+  userID?: string;
   transcript: ConversationHistoryTranscriptCommonModelOutput[];
   metadata: ConversationHistoryMetadataCommonModel;
   analysis?: ConversationHistoryAnalysisCommonModel;
@@ -52,8 +53,8 @@ export class ElevenLabsProvider implements CallerProvider {
     const { patient } = request;
 
     const dynamicVariables = {
-      user_given_name: patient.givenName,
-      user_family_name: patient.familyName,
+      user_given_name: getPatientFirstName(patient),
+      user_family_name: getPatientFamilyName(patient),
       user_plan_name: patient.partnerOrganization,
     };
 
@@ -67,7 +68,7 @@ export class ElevenLabsProvider implements CallerProvider {
         body: JSON.stringify({
           agent_id: DEXA_AGENT_ID,
           agent_phone_number_id: DEXA_PHONE_ID,
-          to_number: patient.phoneNumber,
+          to_number: getPatientPhoneNumber(patient),
           conversation_initiation_client_data: {
             dynamic_variables: dynamicVariables,
           },
@@ -82,7 +83,7 @@ export class ElevenLabsProvider implements CallerProvider {
 
       return {
         status: 'initiated',
-        callId: data.conversation_id,
+        callID: data.conversation_id,
       };
     } catch (error) {
       throw new Error(
@@ -91,13 +92,13 @@ export class ElevenLabsProvider implements CallerProvider {
     }
   }
 
-  async getCall(conversationId: string): Promise<CallResult> {
+  async getCall(conversationID: string): Promise<CallResult> {
     if (!this.elevenLabsApiKey) {
       throw new Error('ELEVEN_LABS_API_KEY environment variable not set');
     }
 
     try {
-      const response = await this.client.conversationalAi.conversations.get(conversationId);
+      const response = await this.client.conversationalAi.conversations.get(conversationID);
 
       console.log('response', response?.analysis?.dataCollectionResults);
       let mappedStatus: 'initiated' | 'completed' | 'failed';
@@ -121,7 +122,7 @@ export class ElevenLabsProvider implements CallerProvider {
         answeredBy = 'voicemail';
       }
       return {
-        callId: conversationId,
+        callID: conversationID,
         status: mappedStatus,
         answeredBy,
       };
@@ -156,7 +157,7 @@ export class ElevenLabsProvider implements CallerProvider {
 
     return {
       // TODO get real typing
-      callId: response.conversation_id,
+      callID: response.conversation_id,
       status: mappedStatus,
       answeredBy: answeredBy as 'human' | 'voicemail',
     };

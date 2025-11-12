@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import {
+  CareTaskEventResultType,
   CareTaskEventStatus,
   CareTaskEventType,
-  EventResultType,
-  OutreachChannel,
+  ContactPointSystem,
 } from '@prisma/client';
 import { PrismaService } from '#prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
@@ -27,25 +27,30 @@ export class CallerService {
     this.callerProvider = new BlandAIProvider(this.logger);
   }
 
-  async initiateCall(taskId: string): Promise<APICallResult> {
-    const task = await this.prisma.careTask.findUnique({
-      where: { id: taskId },
+  async initiateCall(careTaskID: string): Promise<APICallResult> {
+    const careTask = await this.prisma.careTask.findUnique({
+      where: { id: careTaskID },
       include: {
-        patient: true,
+        patient: {
+          include: {
+            name: true,
+            telecom: true,
+          },
+        },
       },
     });
 
-    if (!task) {
+    if (!careTask) {
       throw new Error('Task not found');
     }
 
-    const patient = task.patient;
-    const taskType = task.type;
+    const patient = careTask.patient;
+    const careTaskType = careTask.type;
 
     const optOut = await this.prisma.patientOptOut.findFirst({
       where: {
-        patientId: patient.id,
-        channel: OutreachChannel.PHONE,
+        patientID: patient.id,
+        contactPointSystem: ContactPointSystem.PHONE,
       },
     });
 
@@ -54,21 +59,21 @@ export class CallerService {
     }
 
     this.logger.log(`Initiating call for patient`, {
-      patientId: patient.id,
+      patientID: patient.id,
     });
 
     const callResult = await this.callerProvider.initiateCall({
       patient,
-      taskType,
+      careTaskType,
     });
 
-    this.logger.log(`Call initiated successfully: ${callResult.callId}`);
+    this.logger.log(`Call initiated successfully: ${callResult.callID}`);
 
     await this.prisma.careTaskEvent.create({
       data: {
-        taskId,
-        externalId: callResult.callId,
-        eventType: CareTaskEventType.PATIENT_ONBOARDING_CALL,
+        careTaskID,
+        externalID: callResult.callID,
+        type: CareTaskEventType.PATIENT_ONBOARDING_CALL,
         status: CareTaskEventStatus.INITIATED,
       },
     });
@@ -76,47 +81,47 @@ export class CallerService {
     let message = '';
     if (callResult.status === 'initiated') {
       incrementMetric('caller.call_initiated', {
-        taskType,
+        careTaskType,
       });
       message = 'Call initiated successfully';
     } else if (callResult.status === 'failed') {
       incrementMetric('caller.call_failed', {
-        taskType,
+        careTaskType,
       });
       message = 'Call failed to initiate';
     }
 
     return {
-      callId: callResult.callId,
+      callID: callResult.callID,
       status: callResult.status,
       message: message,
     };
   }
 
-  async getCall(callId: string): Promise<APICallResult> {
-    this.logger.log(`Getting call status for call ${callId}`);
+  async getCall(callID: string): Promise<APICallResult> {
+    this.logger.log(`Getting call status for call ${callID}`);
     try {
-      const result = await this.callerProvider.getCall(callId);
-      await this.updateCallEvent(result);
+      const callResult = await this.callerProvider.getCall(callID);
+      await this.updateCallEvent(callResult);
       let message = '';
-      if (result.status === 'completed') {
+      if (callResult.status === 'completed') {
         message = 'Call retrieved successfully';
-      } else if (result.status === 'failed') {
+      } else if (callResult.status === 'failed') {
         message = 'Call failed to retrieve';
-      } else if (result.status === 'initiated') {
+      } else if (callResult.status === 'initiated') {
         message = 'Call is still in progress';
       }
       return {
-        ...result,
+        ...callResult,
         message: message,
       };
     } catch (error) {
       this.logger.error(`Failed to get call status:`, {
         error: getErrorMessage(error),
-        externalCallId: callId,
+        externalCallID: callID,
       });
       return {
-        callId: callId,
+        callID: callID,
         status: 'failed',
         message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
@@ -124,14 +129,14 @@ export class CallerService {
   }
 
   async updateCallEvent(data: CallResult): Promise<void> {
-    const { callId, answeredBy, summary } = data;
-    if (!callId) {
+    const { callID, answeredBy, summary } = data;
+    if (!callID) {
       throw new Error('Call ID not found');
     }
     const careTaskEvent = await this.prisma.careTaskEvent.findFirstOrThrow({
-      where: { externalId: callId },
+      where: { externalID: callID },
       include: {
-        task: {
+        careTask: {
           include: {
             patient: {
               include: {
@@ -149,18 +154,18 @@ export class CallerService {
 
     if (
       summary?.requested_opt_out &&
-      !careTaskEvent.task.patient.optedOutChannels.some(
-        (channel) => channel.channel === OutreachChannel.PHONE,
+      !careTaskEvent.careTask.patient.optedOutChannels.some(
+        (channel) => channel.contactPointSystem === ContactPointSystem.PHONE,
       )
     ) {
       incrementMetric('caller.patient_opted_out', {
-        taskType: careTaskEvent.task.type as string,
-        channel: OutreachChannel.PHONE,
+        taskType: careTaskEvent.careTask.type as string,
+        contactPointSystem: ContactPointSystem.PHONE,
       });
       await this.prisma.patientOptOut.create({
         data: {
-          patientId: careTaskEvent.task.patientId,
-          channel: OutreachChannel.PHONE,
+          patientID: careTaskEvent.careTask.patientID,
+          contactPointSystem: ContactPointSystem.PHONE,
         },
       });
     }
@@ -168,7 +173,7 @@ export class CallerService {
     // Only increment first time we update this, in case we ever hit this code again
     if (careTaskEvent.status === CareTaskEventStatus.INITIATED && answeredBy) {
       incrementMetric('caller.call_completed', {
-        taskType: careTaskEvent.task.type as string,
+        taskType: careTaskEvent.careTask.type as string,
         answeredBy,
       });
     }
@@ -186,10 +191,10 @@ export class CallerService {
     }
 
     if (summary?.questions?.length && summary.questions.length > 0) {
-      const existingQuestions = await this.prisma.eventResult.findMany({
+      const existingQuestions = await this.prisma.careTaskEventResult.findMany({
         where: {
-          type: EventResultType.QUESTION,
-          eventId: careTaskEvent.id,
+          type: CareTaskEventResultType.QUESTION,
+          eventID: careTaskEvent.id,
         },
       });
 
@@ -198,10 +203,10 @@ export class CallerService {
       );
 
       if (nonExistingQuestions.length > 0) {
-        await this.prisma.eventResult.createMany({
+        await this.prisma.careTaskEventResult.createMany({
           data: nonExistingQuestions.map((question) => ({
-            type: EventResultType.QUESTION,
-            eventId: careTaskEvent.id,
+            type: CareTaskEventResultType.QUESTION,
+            eventID: careTaskEvent.id,
             key: question.key,
             value: question.value,
           })),
@@ -210,10 +215,10 @@ export class CallerService {
     }
 
     if (summary?.other?.length && summary.other.length > 0) {
-      const existingOther = await this.prisma.eventResult.findMany({
+      const existingOther = await this.prisma.careTaskEventResult.findMany({
         where: {
-          type: EventResultType.OTHER,
-          eventId: careTaskEvent.id,
+          type: CareTaskEventResultType.OTHER,
+          eventID: careTaskEvent.id,
         },
       });
 
@@ -221,10 +226,10 @@ export class CallerService {
         (other) => !existingOther.some((o) => o.key === other.key),
       );
 
-      await this.prisma.eventResult.createMany({
+      await this.prisma.careTaskEventResult.createMany({
         data: nonExistingOther.map((other) => ({
-          type: EventResultType.OTHER,
-          eventId: careTaskEvent.id,
+          type: CareTaskEventResultType.OTHER,
+          eventID: careTaskEvent.id,
           key: other.key,
           value: other.value,
         })),
@@ -232,10 +237,10 @@ export class CallerService {
     }
 
     if (summary?.verifications?.length && summary.verifications.length > 0) {
-      await this.prisma.eventResult.createMany({
+      await this.prisma.careTaskEventResult.createMany({
         data: summary.verifications.map((verification) => ({
-          type: EventResultType.VERIFICATION,
-          eventId: careTaskEvent.id,
+          type: CareTaskEventResultType.VERIFICATION,
+          eventID: careTaskEvent.id,
           key: verification.key,
           value: verification.result,
           metadata: {
