@@ -21,7 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.config.js",
     "docker:build": "docker build -t care-activation .",
     "docker:run": "docker run -p 3000:3000 care-activation",
-    "docker:compose": "docker-compose up --build",
+    "docker:compose": "nest build && docker-compose up --build",
     "docker:compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
     "mfa": "zsh ../scripts/aws-mfa.sh"
   },
