@@ -1,8 +1,9 @@
-import { CareTaskType, Patient } from '@prisma/client';
+import { PatientPayload } from '#patient/patient.service';
+import { CareTaskType } from '@prisma/client';
 import type { Request } from 'express';
 
 export interface CallResult {
-  callId: string;
+  callID: string;
   status: 'initiated' | 'completed' | 'failed';
   answeredBy?: 'human' | 'voicemail';
   summary?: CallSummary;
@@ -16,12 +17,12 @@ interface CallSummary {
 }
 
 export interface CallInitiationRequest {
-  patient: Patient;
-  taskType: CareTaskType;
+  patient: PatientPayload;
+  careTaskType: CareTaskType;
 }
 
 export interface CallerProvider {
   initiateCall: (request: CallInitiationRequest) => Promise<CallResult>;
-  getCall: (callId: string) => Promise<CallResult>;
+  getCall: (callID: string) => Promise<CallResult>;
   parseWebhook: (request: Request) => Promise<CallResult>;
 }

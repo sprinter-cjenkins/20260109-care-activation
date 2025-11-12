@@ -6,6 +6,7 @@ import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '#caller/
 import type { Request } from 'express';
 import crypto from 'node:crypto';
 import { getErrorMessage } from '#src/utils';
+import { getPatientPhoneNumber } from '#patient/utils';
 
 export interface BlandAIResponse {
   status: string;
@@ -33,59 +34,89 @@ export interface ParsedBlandAIResponse {
   summary: BlandAISummary;
 }
 
+function getConfig() {
+  const config = {
+    development: {
+      blandAPIKey: process.env.BLAND_AI_DEVELOPMENT_API_KEY,
+      encryptedKey: process.env.BLAND_AI_DEVELOPMENT_TWILIO_ENCRYPTED_KEY,
+      fromNumber: process.env.BLAND_AI_DEVELOPMENT_FROM_NUMBER,
+    },
+    production: {
+      blandAPIKey: process.env.BLAND_AI_API_KEY,
+      encryptedKey: process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY,
+      fromNumber: process.env.BLAND_AI_FROM_NUMBER,
+    },
+  };
+
+  return process.env.NODE_ENV === 'development' ? config.development : config.production;
+}
+
 @Injectable()
 export class BlandAIProvider implements CallerProvider {
   name: string = 'bland-ai';
-  private readonly blandApiKey = process.env.BLAND_AI_API_KEY;
-  private readonly blandApiUrl = 'https://api.bland.ai/v1';
+
+  private readonly blandAPIKey: string;
+  private readonly encryptedKey: string;
+  private readonly fromNumber: string;
+
+  private readonly blandAPIURL = 'https://api.bland.ai/v1';
 
   private readonly logger: LoggerNoPHI;
 
   constructor(logger: LoggerNoPHI) {
     this.logger = logger;
-  }
 
-  async initiateCall(request: CallInitiationRequest): Promise<CallResult> {
-    const { patient, taskType } = request;
+    const { blandAPIKey, encryptedKey, fromNumber } = getConfig();
 
-    if (!this.blandApiKey) {
+    if (blandAPIKey == null) {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
-    if (!process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY) {
+    if (encryptedKey == null) {
       throw new Error('BLAND_AI_TWILIO_ENCRYPTED_KEY environment variable not set');
     }
 
-    const pathwayId = getPathwayID(taskType);
+    if (fromNumber == null) {
+      throw new Error('BLAND_AI_FROM_NUMBER environment variable not set');
+    }
+    this.blandAPIKey = blandAPIKey;
+    this.encryptedKey = encryptedKey;
+    this.fromNumber = fromNumber;
+  }
 
-    if (!pathwayId) {
+  async initiateCall(request: CallInitiationRequest): Promise<CallResult> {
+    const { patient, careTaskType } = request;
+
+    const pathwayID = getPathwayID(careTaskType);
+
+    if (!pathwayID) {
       throw new Error('Pathway ID not found');
     }
 
     try {
-      const response = await fetch(`${this.blandApiUrl}/calls`, {
+      const response = await fetch(`${this.blandAPIURL}/calls`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          authorization: this.blandApiKey,
-          encrypted_key: process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY,
+          authorization: this.blandAPIKey,
+          encrypted_key: this.encryptedKey,
         },
         body: JSON.stringify({
-          phone_number: patient.phoneNumber,
+          phone_number: getPatientPhoneNumber(patient),
           voice: 'June',
-          pathway_id: getPathwayID(taskType),
+          pathway_id: getPathwayID(careTaskType),
           voicemail: {
-            message: getVoicemailMessage(patient, taskType),
+            message: getVoicemailMessage(patient, careTaskType),
             action: 'leave_message',
             sensitive: true,
           },
           request_data: buildRequestData(patient),
           summary_prompt: getSummaryPrompt(patient),
-          citation_schema_ids: [getCitationSchemaID(taskType)],
+          citation_schema_ids: [getCitationSchemaID(careTaskType)],
           ...(process.env.NODE_ENV !== 'development' && {
             webhook: process.env.BLAND_AI_WEBHOOK_URL,
           }),
-          from: process.env.BLAND_AI_FROM_NUMBER,
+          from: this.fromNumber,
         }),
       });
 
@@ -101,27 +132,27 @@ export class BlandAIProvider implements CallerProvider {
       this.logger.log(`Call initiated successfully: ${data.call_id}`);
 
       return {
-        callId: data.call_id,
+        callID: data.call_id,
         status: 'initiated',
       };
     } catch (error) {
       this.logger.error(`Failed to initiate call:`, { error: getErrorMessage(error) });
       return {
-        callId: '',
+        callID: '',
         status: 'failed',
       };
     }
   }
-  async getCall(callId: string): Promise<CallResult> {
-    if (!this.blandApiKey) {
+  async getCall(callID: string): Promise<CallResult> {
+    if (!this.blandAPIKey) {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
     try {
-      const response = await fetch(`${this.blandApiUrl}/calls/${callId}`, {
+      const response = await fetch(`${this.blandAPIURL}/calls/${callID}`, {
         method: 'GET',
         headers: {
-          authorization: this.blandApiKey,
+          authorization: this.blandAPIKey,
         },
       });
 
@@ -139,7 +170,7 @@ export class BlandAIProvider implements CallerProvider {
           ? parsedData.answered_by
           : undefined;
       return {
-        callId: parsedData.call_id || callId,
+        callID: parsedData.call_id || callID,
         status: data.status === 'completed' ? 'completed' : 'initiated',
         summary: parsedData.summary,
         answeredBy,
@@ -147,7 +178,7 @@ export class BlandAIProvider implements CallerProvider {
     } catch (error) {
       this.logger.error(`Failed to get call status:`, { error: getErrorMessage(error) });
       return {
-        callId: callId,
+        callID: callID,
         status: 'failed',
       };
     }
@@ -168,7 +199,7 @@ export class BlandAIProvider implements CallerProvider {
     } catch (error) {
       this.logger.error(`Failed to parse summary:`, {
         error: getErrorMessage(error),
-        externalCallId: call_id,
+        externalCallID: call_id,
       });
       parsedSummary.other.push({ key: 'failureReason', value: summary });
     }
@@ -195,7 +226,7 @@ export class BlandAIProvider implements CallerProvider {
         ? parsedData.answered_by
         : undefined;
     return Promise.resolve({
-      callId: parsedData.call_id,
+      callID: parsedData.call_id,
       status: parsedData.answered_by != null ? 'completed' : 'initiated',
       summary: parsedData.summary,
       answeredBy,

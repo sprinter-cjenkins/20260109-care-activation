@@ -15,7 +15,7 @@ While the specifics are still being defined, the focus will be on creating tools
 
 ## Getting Started
 
-Onboarding doc: https://app.clickup.com/10562600/docs/a2b18-3360
+Onboarding doc: https://app.clickup.com/10562600/docs/a2b18-3360/a2b18-287614
 
 ---
 

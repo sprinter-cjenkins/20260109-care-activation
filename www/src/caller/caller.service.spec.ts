@@ -1,14 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  CareTaskStatus,
-  CareTaskType,
-  OutreachChannel,
-  PartnerOrganization,
-  Patient,
-} from '@prisma/client';
+import { CareTaskType, ContactPointSystem } from '@prisma/client';
 import { buildRequestData, getPathwayID, getSummaryPrompt, getVoicemailMessage } from './utils';
+import { getPatientPhoneNumber } from '#patient/utils';
+import { mockPatientPayload, mockCareTaskPayload } from '../../test/mocks';
+import { CareTaskPayload } from '#care-task/care-task.service';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -17,39 +14,10 @@ describe('CallerService', () => {
   let service: CallerService;
   let prismaService: PrismaService;
 
-  const mockPatient: Patient = {
-    id: 'patient-123',
-    givenName: 'John',
-    familyName: 'Doe',
-    phoneNumber: '+1234567890',
-    externalId: 'ext-123',
-    birthDate: new Date('1990-01-01'),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    emailAddress: 'john.doe@example.com',
-    metadata: {},
-    partnerOrganization: PartnerOrganization.ELEVANCEHEALTH,
-    timezone: 'America/New_York',
-  };
-
-  const mockDexaTask = {
-    id: 'task-123',
-    type: CareTaskType.DEXA_SCAN,
-    status: CareTaskStatus.PENDING,
-    patientId: 'patient-123',
-    patient: mockPatient,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockNonDexaTask = {
+  const mockNonDexaTask: CareTaskPayload = {
+    ...mockCareTaskPayload,
     id: 'task-456',
     type: 'OTHER' as CareTaskType,
-    status: CareTaskStatus.PENDING,
-    patientId: 'patient-123',
-    patient: mockPatient,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   beforeAll(() => {
@@ -73,7 +41,7 @@ describe('CallerService', () => {
               update: jest.fn(),
               findFirstOrThrow: jest.fn(),
             },
-            eventResult: {
+            careTaskEventResult: {
               createMany: jest.fn(),
               findMany: jest.fn(),
               findFirstOrThrow: jest.fn(),
@@ -92,25 +60,18 @@ describe('CallerService', () => {
 
     // Reset mocks
     jest.clearAllMocks();
-
-    // Set up environment variable
-    process.env.BLAND_AI_API_KEY = 'test-api-key';
-  });
-
-  afterAll(() => {
-    delete process.env.BLAND_AI_API_KEY;
   });
 
   describe('initiateCall', () => {
-    const taskId = 'task-123';
+    const careTaskID = 'task-123';
 
     it('should throw error when task is not found', async () => {
       // Arrange
-      const taskId = 'non-existent-task';
+      const careTaskID = 'non-existent-task';
       jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.initiateCall(taskId)).rejects.toThrow('Task not found');
+      await expect(service.initiateCall(careTaskID)).rejects.toThrow('Task not found');
     });
 
     it('should throw error when task type is not DEXA_SCAN', async () => {
@@ -118,11 +79,11 @@ describe('CallerService', () => {
       jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockNonDexaTask);
 
       // Act & Assert
-      await expect(service.initiateCall(taskId)).rejects.toThrow('Pathway ID not found');
+      await expect(service.initiateCall(careTaskID)).rejects.toThrow('Pathway ID not found');
     });
 
     it('should successfully call Bland AI with correct parameters for DEXA_SCAN task', async () => {
-      jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockDexaTask);
+      jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockCareTaskPayload);
 
       const mockBlandResponse = {
         call_id: 'bland-call-123',
@@ -132,19 +93,19 @@ describe('CallerService', () => {
         ok: true,
         json: () => Promise.resolve(mockBlandResponse),
       });
-      await service.initiateCall(taskId);
+      await service.initiateCall(careTaskID);
 
       // Verify Bland AI API call with correct parameters
       const call = (global.fetch as jest.Mock).mock.calls[0][1];
       expect(JSON.parse(call.body as string) as Record<string, unknown>).toMatchObject({
-        phone_number: mockPatient.phoneNumber,
+        phone_number: getPatientPhoneNumber(mockPatientPayload),
         voice: 'June',
-        pathway_id: getPathwayID(mockDexaTask.type),
+        pathway_id: getPathwayID(mockCareTaskPayload.type),
         from: process.env.BLAND_AI_FROM_NUMBER,
-        request_data: buildRequestData(mockPatient),
-        summary_prompt: getSummaryPrompt(mockPatient),
+        request_data: buildRequestData(mockPatientPayload),
+        summary_prompt: getSummaryPrompt(mockPatientPayload),
         voicemail: {
-          message: getVoicemailMessage(mockPatient, mockDexaTask.type),
+          message: getVoicemailMessage(mockPatientPayload, mockCareTaskPayload.type),
           action: 'leave_message',
           sensitive: true,
         },
@@ -152,25 +113,25 @@ describe('CallerService', () => {
     });
 
     it('should throw error when patient has opted out of phone outreach', async () => {
-      jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockDexaTask);
+      jest.spyOn(prismaService.careTask, 'findUnique').mockResolvedValue(mockCareTaskPayload);
       jest.spyOn(prismaService.patientOptOut, 'findFirst').mockResolvedValue({
         id: 'opt-out-123',
-        patientId: mockPatient.id,
-        channel: OutreachChannel.PHONE,
+        patientID: mockPatientPayload.id,
+        contactPointSystem: ContactPointSystem.PHONE,
         createdAt: new Date(),
       });
 
-      await expect(service.initiateCall(taskId)).rejects.toThrow(
+      await expect(service.initiateCall(careTaskID)).rejects.toThrow(
         'Patient has opted out of phone outreach',
       );
     });
   });
 
   describe('getCall', () => {
-    const callId = 'bland-call-123';
+    const callID = 'bland-call-123';
 
     const mockBlandResponse = {
-      call_id: callId,
+      call_id: callID,
       answered_by: 'human',
       summary: JSON.stringify({}),
       status: 'completed',
@@ -178,26 +139,30 @@ describe('CallerService', () => {
 
     const mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
     const mockCareTaskFindFirstOrThrow = jest.fn().mockResolvedValue({
-      id: callId,
-      task: { patientId: mockPatient.id, patient: { optedOutChannels: [] } },
+      id: callID,
+      careTask: { patientID: mockPatientPayload.id, patient: { optedOutChannels: [] } },
     });
     const mockPatientOptOutCreate = jest.fn().mockResolvedValue({});
-    const mockEventResultCreateMany = jest.fn().mockResolvedValue({});
-    let mockEventResultFindMany = jest.fn().mockResolvedValue([]);
-    const mockEventResultFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callId });
+    const mockCareTaskEventResultCreateMany = jest.fn().mockResolvedValue({});
+    let mockCareTaskEventResultFindMany = jest.fn().mockResolvedValue([]);
+    const mockCareTaskEventResultFindFirstOrThrow = jest.fn().mockResolvedValue({ id: callID });
 
     beforeEach(() => {
       jest.spyOn(prismaService.careTaskEvent, 'update').mockImplementation(mockCareTaskUpdateEvent);
       jest
         .spyOn(prismaService.careTaskEvent, 'findFirstOrThrow')
         .mockImplementation(mockCareTaskFindFirstOrThrow);
+
       jest
-        .spyOn(prismaService.eventResult, 'createMany')
-        .mockImplementation(mockEventResultCreateMany);
-      jest.spyOn(prismaService.eventResult, 'findMany').mockImplementation(mockEventResultFindMany);
+        .spyOn(prismaService.careTaskEventResult, 'createMany')
+        .mockImplementation(mockCareTaskEventResultCreateMany);
       jest
-        .spyOn(prismaService.eventResult, 'findFirstOrThrow')
-        .mockImplementation(mockEventResultFindFirstOrThrow);
+        .spyOn(prismaService.careTaskEventResult, 'findMany')
+        .mockImplementation(mockCareTaskEventResultFindMany);
+      jest
+        .spyOn(prismaService.careTaskEventResult, 'findFirstOrThrow')
+        .mockImplementation(mockCareTaskEventResultFindFirstOrThrow);
+
       jest.spyOn(prismaService.patientOptOut, 'create').mockImplementation(mockPatientOptOutCreate);
 
       (global.fetch as jest.Mock).mockResolvedValue({
@@ -207,12 +172,12 @@ describe('CallerService', () => {
     });
 
     it('should update task event with SUCCESS when call is completed', async () => {
-      await service.getCall(callId);
+      await service.getCall(callID);
 
       // Assert
       expect(mockCareTaskUpdateEvent).toHaveBeenCalledWith({
         where: {
-          id: callId,
+          id: callID,
         },
         data: {
           status: 'SUCCESS',
@@ -222,10 +187,10 @@ describe('CallerService', () => {
 
     it('should update task event with VOICEMAIL when call goes to voicemail', async () => {
       mockBlandResponse.answered_by = 'voicemail';
-      await service.getCall(callId);
+      await service.getCall(callID);
       expect(mockCareTaskUpdateEvent).toHaveBeenCalledWith({
         where: {
-          id: callId,
+          id: callID,
         },
         data: {
           status: 'VOICEMAIL',
@@ -239,14 +204,14 @@ describe('CallerService', () => {
         other: [{ key: 'other1', value: 'answer2' }],
       });
 
-      await service.getCall(callId);
+      await service.getCall(callID);
 
-      expect(mockEventResultCreateMany).toHaveBeenCalledWith({
-        data: [{ type: 'QUESTION', eventId: callId, key: 'question1', value: 'answer1' }],
+      expect(mockCareTaskEventResultCreateMany).toHaveBeenCalledWith({
+        data: [{ type: 'QUESTION', eventID: callID, key: 'question1', value: 'answer1' }],
       });
 
-      expect(mockEventResultCreateMany).toHaveBeenCalledWith({
-        data: [{ type: 'OTHER', eventId: callId, key: 'other1', value: 'answer2' }],
+      expect(mockCareTaskEventResultCreateMany).toHaveBeenCalledWith({
+        data: [{ type: 'OTHER', eventID: callID, key: 'other1', value: 'answer2' }],
       });
     });
 
@@ -255,17 +220,19 @@ describe('CallerService', () => {
         questions: [{ key: 'question1', value: 'answer1' }],
       });
 
-      mockEventResultFindMany = jest
+      mockCareTaskEventResultFindMany = jest
         .fn()
         .mockResolvedValue([
-          { type: 'QUESTION', eventId: callId, key: 'question1', value: 'answer1' },
+          { type: 'QUESTION', eventID: callID, key: 'question1', value: 'answer1' },
         ]);
 
-      jest.spyOn(prismaService.eventResult, 'findMany').mockImplementation(mockEventResultFindMany);
+      jest
+        .spyOn(prismaService.careTaskEventResult, 'findMany')
+        .mockImplementation(mockCareTaskEventResultFindMany);
 
-      await service.getCall(callId);
+      await service.getCall(callID);
 
-      expect(mockEventResultCreateMany).not.toHaveBeenCalled();
+      expect(mockCareTaskEventResultCreateMany).not.toHaveBeenCalled();
     });
 
     it('should opt out if patient summary has requested_opt_out', async () => {
@@ -273,13 +240,13 @@ describe('CallerService', () => {
         requested_opt_out: true,
       });
 
-      await service.getCall(callId);
+      await service.getCall(callID);
 
       expect(mockPatientOptOutCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           data: {
-            patientId: mockPatient.id,
-            channel: OutreachChannel.PHONE,
+            patientID: mockPatientPayload.id,
+            contactPointSystem: ContactPointSystem.PHONE,
           },
         }),
       );
@@ -290,28 +257,30 @@ describe('CallerService', () => {
         requested_opt_out: true,
       });
       mockCareTaskFindFirstOrThrow.mockResolvedValue({
-        id: callId,
-        task: {
-          patientId: mockPatient.id,
+        id: callID,
+        careTask: {
+          patientID: mockPatientPayload.id,
           patient: {
-            optedOutChannels: [{ channel: OutreachChannel.PHONE, createdAt: new Date() }],
+            optedOutChannels: [
+              { contactPointSystem: ContactPointSystem.PHONE, createdAt: new Date() },
+            ],
           },
         },
       });
 
-      await service.getCall(callId);
+      await service.getCall(callID);
 
       expect(mockPatientOptOutCreate).not.toHaveBeenCalled();
     });
 
     it('handles invalid summaries', async () => {
       mockBlandResponse.summary = 'Failed to generate summary';
-      await service.getCall(callId);
-      expect(mockEventResultCreateMany).toHaveBeenCalledWith({
+      await service.getCall(callID);
+      expect(mockCareTaskEventResultCreateMany).toHaveBeenCalledWith({
         data: [
           {
             type: 'OTHER',
-            eventId: callId,
+            eventID: callID,
             key: 'failureReason',
             value: 'Failed to generate summary',
           },

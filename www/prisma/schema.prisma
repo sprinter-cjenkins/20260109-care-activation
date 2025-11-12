@@ -36,49 +36,97 @@ enum CareTaskEventStatus {
   VOICEMAIL
 }
 
-enum EventResultType {
+enum CareTaskEventResultType {
   QUESTION
   OTHER
   VERIFICATION
 }
 
-enum OutreachChannel {
-  EMAIL
-  SMS
+// FHIR: https://www.hl7.org/fhir/datatypes-definitions.html#ContactPoint.system
+enum ContactPointSystem {
   PHONE
+  FAX
+  EMAIL
+  PAGER
+  URL
+  SMS
+  OTHER
+}
+
+// FHIR: https://www.hl7.org/fhir/valueset-contact-point-use.html
+enum ContactPointUse {
+  HOME
+  WORK
+  TEMP
+  OLD
+  MOBILE
+}
+
+// FHIR: https://www.hl7.org/fhir/datatypes.html#ContactPoint
+model ContactPoint {
+  id        String   @id @default(uuid())
+  system    ContactPointSystem
+  value     String
+  use       ContactPointUse
+  rank      Int @default(1) // 1 = highest priority
+
+  patient   Patient  @relation(fields: [patientID], references: [id])
+  patientID String
+}
+
+// FHIR: https://www.hl7.org/fhir/valueset-name-use.html
+enum NameUse {
+  USUAL
+  OFFICIAL
+  TEMP
+  NICKNAME
+  ANONYMOUS
+  OLD
+  MAIDEN
+}
+
+// FHIR: https://www.hl7.org/fhir/datatypes.html#HumanName
+model HumanName {
+  id      String   @id @default(uuid())
+  use     NameUse @default(USUAL)
+  family  String
+  given   Json // Ideally this is an array of strings, but mySQL doesn't let you do that directly
+  prefix  String?
+  suffix  String?
+
+  patient Patient  @relation(fields: [patientID], references: [id])
+  patientID String
 }
 
 model Patient {
   birthDate           DateTime @db.Date
   createdAt           DateTime @default(now())
-  emailAddress        String?
-  externalId          String @unique
-  familyName          String
-  givenName           String
+  telecom             ContactPoint[]
+  name                HumanName[]
+  externalID          String @unique
   id                  String   @id @default(uuid())
   metadata            Json
   optedOutChannels    PatientOptOut[]
   partnerOrganization PartnerOrganization
-  phoneNumber         String
-  tasks               CareTask[]
+  careTasks           CareTask[]
   timezone            String
   updatedAt           DateTime @updatedAt
 }
 
 model PatientOptOut {
-  createdAt DateTime        @default(now())
-  id        String          @id @default(uuid())
-  patient   Patient         @relation(fields: [patientId], references: [id])
-  patientId String
-  channel   OutreachChannel
+  createdAt             DateTime        @default(now())
+  id                    String          @id @default(uuid())
+  patient               Patient         @relation(fields: [patientID], references: [id])
+  patientID             String
+  contactPointSystem    ContactPointSystem
 }
 
 model CareTask {
   createdAt DateTime        @default(now())
   events    CareTaskEvent[]
   id        String          @id @default(uuid())
-  patient   Patient         @relation(fields: [patientId], references: [id])
-  patientId String
+  patient   Patient         @relation(fields: [patientID], references: [id])
+  patientID String
   status    CareTaskStatus  @default(PENDING)
   type      CareTaskType
   updatedAt DateTime        @updatedAt
@@ -86,23 +134,23 @@ model CareTask {
 
 model CareTaskEvent {
   createdAt     DateTime        @default(now())
-  eventType     CareTaskEventType
-  externalId    String?
+  type          CareTaskEventType
+  externalID    String?
   failureReason String?
   id            String          @id @default(uuid())
-  results       EventResult[]
+  results       CareTaskEventResult[]
   status        CareTaskEventStatus
-  task          CareTask        @relation(fields: [taskId], references: [id])
-  taskId        String
+  careTask      CareTask        @relation(fields: [careTaskID], references: [id])
+  careTaskID    String
   updatedAt     DateTime        @updatedAt
 }
 
-model EventResult {
+model CareTaskEventResult {
   createdAt DateTime        @default(now())
   id        String          @id @default(uuid())
-  type      EventResultType
-  eventId   String
-  event     CareTaskEvent @relation(fields: [eventId], references: [id])
+  type      CareTaskEventResultType
+  eventID   String
+  event     CareTaskEvent @relation(fields: [eventID], references: [id])
   key       String
   value     String
   updatedAt DateTime        @updatedAt

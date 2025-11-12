@@ -1,21 +1,30 @@
-import { CareTaskType, PartnerOrganization, Patient } from '@prisma/client';
+import { PatientPayload } from '#patient/patient.service';
+import { getPatientFullName } from '#patient/utils';
+import { CareTaskType, PartnerOrganization } from '@prisma/client';
 
-const DEXA_PATHWAY_ID = 'b529e181-4184-47fd-b2a8-e4bab2dcdeb9';
-const DEXA_SCAN_CITATION_SCHEMA_ID = '43b8e88f-1f57-4a81-b171-949802c40a44';
+const PRODUCTION_DEXA_PATHWAY_ID = 'b529e181-4184-47fd-b2a8-e4bab2dcdeb9';
+const DEVELOPMENT_DEXA_PATHWAY_ID = '01a835e9-9ede-4919-a33f-43673fc95493';
 
-  export function getPathwayID(taskType: CareTaskType) {
-    switch (taskType) {
-      case CareTaskType.DEXA_SCAN:
-        return DEXA_PATHWAY_ID;
-      default:
-        return null;
-    }
-  }
+const PRODUCTION_DEXA_SCAN_CITATION_SCHEMA_ID = '43b8e88f-1f57-4a81-b171-949802c40a44';
+const DEVELOPMENT_DEXA_SCAN_CITATION_SCHEMA_ID = '0fa9fc67-97ff-4e4a-911e-42e3ba5c56ca';
 
-export function getCitationSchemaID(taskType: CareTaskType) {
-  switch (taskType) {
+export function getPathwayID(careTaskType: CareTaskType) {
+  switch (careTaskType) {
     case CareTaskType.DEXA_SCAN:
-      return DEXA_SCAN_CITATION_SCHEMA_ID;
+      return process.env.NODE_ENV === 'development'
+        ? DEVELOPMENT_DEXA_PATHWAY_ID
+        : PRODUCTION_DEXA_PATHWAY_ID;
+    default:
+      return null;
+  }
+}
+
+export function getCitationSchemaID(careTaskType: CareTaskType) {
+  switch (careTaskType) {
+    case CareTaskType.DEXA_SCAN:
+      return process.env.NODE_ENV === 'development'
+        ? DEVELOPMENT_DEXA_SCAN_CITATION_SCHEMA_ID
+        : PRODUCTION_DEXA_SCAN_CITATION_SCHEMA_ID;
     default:
       return null;
   }
@@ -30,8 +39,8 @@ export function getPartnerOrganizationName(partnerOrganization: PartnerOrganizat
   }
 }
 
-export function getNameOfTask(taskType: CareTaskType) {
-  switch (taskType) {
+export function getNameOfTask(careTaskType: CareTaskType) {
+  switch (careTaskType) {
     case CareTaskType.DEXA_SCAN:
       return 'DEXA scan';
     default:
@@ -39,9 +48,10 @@ export function getNameOfTask(taskType: CareTaskType) {
   }
 }
 
-export function buildRequestData(patient: Patient) {
+export function buildRequestData(patient: PatientPayload) {
+  const patientFullName = getPatientFullName(patient);
   return {
-    patient_full_name: `${patient.givenName} ${patient.familyName}`,
+    patient_full_name: patientFullName,
     patient_dob: patient.birthDate.toLocaleDateString('en-US', {
       timeZone: 'UTC',
       year: 'numeric',
@@ -52,12 +62,12 @@ export function buildRequestData(patient: Patient) {
   };
 }
 
-export function getVoicemailMessage(patient: Patient, taskType: CareTaskType) {
-  return `Hi, This is Sprinty calling on behalf of ${getPartnerOrganizationName(patient.partnerOrganization)} from Sprinter Health to help you schedule your ${getNameOfTask(taskType)}. Please call us back at two zero nine, three seven zero, zero two zero nine. Thank you so much, and have a wonderful day!`;
+export function getVoicemailMessage(patient: PatientPayload, careTaskType: CareTaskType) {
+  return `Hi, This is Sprinty calling on behalf of ${getPartnerOrganizationName(patient.partnerOrganization)} from Sprinter Health to help you schedule your ${getNameOfTask(careTaskType)}. Please call us back at two zero nine, three seven zero, zero two zero nine. Thank you so much, and have a wonderful day!`;
 }
 
 // 2k character limit
-export function getSummaryPrompt(patient: Patient) {
+export function getSummaryPrompt(patient: PatientPayload) {
   const requestData = buildRequestData(patient);
   return `
 

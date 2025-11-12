@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { CareTaskService } from './care-task.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CareTaskStatus, CareTaskType, PartnerOrganization } from '@prisma/client';
+import { CareTaskStatus, CareTaskType } from '@prisma/client';
+import { mockCareTaskPayload, mockPatientPayload } from '../../test/mocks';
 
 describe('CareTaskService', () => {
   let service: CareTaskService;
@@ -38,67 +39,41 @@ describe('CareTaskService', () => {
     jest.clearAllMocks();
   });
 
-  const mockPatient = {
-    id: 'patient-1',
-    externalId: 'EXT123',
-    email: 'john.doe@example.com',
-    phone: '+1234567890',
-    givenName: 'John',
-    familyName: 'Doe',
-    birthDate: new Date('1990-01-15'),
-    timezone: 'America/New_York',
-    partnerOrganization: PartnerOrganization.ELEVANCEHEALTH,
-    metadata: {},
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockCareTask = {
-    id: 'task-1',
-    patientId: 'patient-1',
-    type: CareTaskType.DEXA_SCAN,
-    status: CareTaskStatus.PENDING,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    patient: mockPatient,
-    events: [],
-  };
-
-  describe('createByExternalId', () => {
+  describe('createByExternalID', () => {
     it('should create a care task when patient exists', async () => {
       // Arrange
-      const externalId = 'EXT123';
+      const externalID = 'EXT123';
       const taskData = {
         type: CareTaskType.DEXA_SCAN,
         status: CareTaskStatus.PENDING,
       };
 
-      mockPrismaService.patient.findUnique.mockResolvedValue(mockPatient);
-      mockPrismaService.careTask.create.mockResolvedValue(mockCareTask);
+      mockPrismaService.patient.findUnique.mockResolvedValue(mockPatientPayload);
+      mockPrismaService.careTask.create.mockResolvedValue(mockCareTaskPayload);
 
       // Act
-      const result = await service.createByExternalId(externalId, taskData);
+      const result = await service.createByExternalID(externalID, taskData);
 
       // Assert
       expect(mockPrismaService.patient.findUnique).toHaveBeenCalledWith({
-        where: { externalId },
+        where: { externalID },
       });
       expect(mockPrismaService.careTask.create).toHaveBeenCalledWith({
         data: {
           ...taskData,
-          patientId: mockPatient.id,
+          patientID: mockPatientPayload.id,
         },
         include: {
           patient: true,
           events: true,
         },
       });
-      expect(result).toEqual(mockCareTask);
+      expect(result).toEqual(mockCareTaskPayload);
     });
 
     it('should throw NotFoundException when patient does not exist', async () => {
       // Arrange
-      const externalId = 'NONEXISTENT';
+      const externalID = 'NONEXISTENT';
       const taskData = {
         type: CareTaskType.MAMMOGRAM,
         status: CareTaskStatus.SCHEDULED,
@@ -107,15 +82,15 @@ describe('CareTaskService', () => {
       mockPrismaService.patient.findUnique.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.createByExternalId(externalId, taskData)).rejects.toThrow(
+      await expect(service.createByExternalID(externalID, taskData)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.createByExternalId(externalId, taskData)).rejects.toThrow(
+      await expect(service.createByExternalID(externalID, taskData)).rejects.toThrow(
         'Patient with external ID NONEXISTENT not found',
       );
 
       expect(mockPrismaService.patient.findUnique).toHaveBeenCalledWith({
-        where: { externalId },
+        where: { externalID },
       });
       expect(mockPrismaService.careTask.create).not.toHaveBeenCalled();
     });
@@ -124,28 +99,28 @@ describe('CareTaskService', () => {
   describe('update', () => {
     it('should update a care task when it exists', async () => {
       // Arrange
-      const taskId = 'task-1';
+      const careTaskID = 'task-1';
       const updateData = {
         status: CareTaskStatus.COMPLETED,
       };
-      const updatedTask = { ...mockCareTask, ...updateData };
+      const updatedTask = { ...mockCareTaskPayload, ...updateData };
 
-      mockPrismaService.careTask.findUnique.mockResolvedValue(mockCareTask);
+      mockPrismaService.careTask.findUnique.mockResolvedValue(mockCareTaskPayload);
       mockPrismaService.careTask.update.mockResolvedValue(updatedTask);
 
       // Act
-      const result = await service.update(taskId, updateData);
+      const result = await service.update(careTaskID, updateData);
 
       // Assert
       expect(mockPrismaService.careTask.findUnique).toHaveBeenCalledWith({
-        where: { id: taskId },
+        where: { id: careTaskID },
         include: {
           patient: true,
           events: true,
         },
       });
       expect(mockPrismaService.careTask.update).toHaveBeenCalledWith({
-        where: { id: taskId },
+        where: { id: careTaskID },
         data: updateData,
         include: {
           patient: true,
@@ -157,7 +132,7 @@ describe('CareTaskService', () => {
 
     it('should throw NotFoundException when care task does not exist', async () => {
       // Arrange
-      const taskId = 'nonexistent-task';
+      const careTaskID = 'nonexistent-task';
       const updateData = {
         status: CareTaskStatus.COMPLETED,
       };
@@ -165,13 +140,13 @@ describe('CareTaskService', () => {
       mockPrismaService.careTask.findUnique.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.update(taskId, updateData)).rejects.toThrow(NotFoundException);
-      await expect(service.update(taskId, updateData)).rejects.toThrow(
+      await expect(service.update(careTaskID, updateData)).rejects.toThrow(NotFoundException);
+      await expect(service.update(careTaskID, updateData)).rejects.toThrow(
         'CareTask with ID nonexistent-task not found',
       );
 
       expect(mockPrismaService.careTask.findUnique).toHaveBeenCalledWith({
-        where: { id: taskId },
+        where: { id: careTaskID },
         include: {
           patient: true,
           events: true,
@@ -184,46 +159,46 @@ describe('CareTaskService', () => {
   describe('remove', () => {
     it('should delete a care task when it exists', async () => {
       // Arrange
-      const taskId = 'task-1';
+      const careTaskID = 'task-1';
 
-      mockPrismaService.careTask.findUnique.mockResolvedValue(mockCareTask);
-      mockPrismaService.careTask.delete.mockResolvedValue(mockCareTask);
+      mockPrismaService.careTask.findUnique.mockResolvedValue(mockCareTaskPayload);
+      mockPrismaService.careTask.delete.mockResolvedValue(mockCareTaskPayload);
 
       // Act
-      const result = await service.remove(taskId);
+      const result = await service.remove(careTaskID);
 
       // Assert
       expect(mockPrismaService.careTask.findUnique).toHaveBeenCalledWith({
-        where: { id: taskId },
+        where: { id: careTaskID },
         include: {
           patient: true,
           events: true,
         },
       });
       expect(mockPrismaService.careTask.delete).toHaveBeenCalledWith({
-        where: { id: taskId },
+        where: { id: careTaskID },
         include: {
           patient: true,
           events: true,
         },
       });
-      expect(result).toEqual(mockCareTask);
+      expect(result).toEqual(mockCareTaskPayload);
     });
 
     it('should throw NotFoundException when care task does not exist', async () => {
       // Arrange
-      const taskId = 'nonexistent-task';
+      const careTaskID = 'nonexistent-task';
 
       mockPrismaService.careTask.findUnique.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.remove(taskId)).rejects.toThrow(NotFoundException);
-      await expect(service.remove(taskId)).rejects.toThrow(
+      await expect(service.remove(careTaskID)).rejects.toThrow(NotFoundException);
+      await expect(service.remove(careTaskID)).rejects.toThrow(
         'CareTask with ID nonexistent-task not found',
       );
 
       expect(mockPrismaService.careTask.findUnique).toHaveBeenCalledWith({
-        where: { id: taskId },
+        where: { id: careTaskID },
         include: {
           patient: true,
           events: true,

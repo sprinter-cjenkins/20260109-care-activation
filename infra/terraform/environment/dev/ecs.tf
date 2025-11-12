@@ -179,7 +179,7 @@ module "care-activation-dev" {
 
       health_check_grace_period_seconds = 60
       wait_for_steady_state             = false
-      enable_execute_command            = false
+      enable_execute_command            = true
       enable_az_rebalancing             = false
       enable_ecs_managed_tags           = true
       propagate_tags                    = "SERVICE"

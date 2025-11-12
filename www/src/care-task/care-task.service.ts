@@ -2,67 +2,64 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '#prisma/prisma.service';
 import { CareTask, CareTaskStatus, Prisma } from '@prisma/client';
 
+export const careTaskPatientAndEventsInclude = {
+  patient: true,
+  events: true,
+} satisfies Prisma.CareTaskInclude;
+
+export type CareTaskPayload = Prisma.CareTaskGetPayload<{
+  include: typeof careTaskPatientAndEventsInclude;
+}>;
+
 @Injectable()
 export class CareTaskService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<CareTask[]> {
+  async findAll(): Promise<CareTaskPayload[]> {
     return this.prisma.careTask.findMany({
-      include: {
-        patient: true,
-        events: true,
-      },
+      include: careTaskPatientAndEventsInclude,
     });
   }
 
-  async findOne(id: string): Promise<CareTask | null> {
+  async findOne(id: string): Promise<CareTaskPayload | null> {
     return this.prisma.careTask.findUnique({
       where: { id },
-      include: {
-        patient: true,
-        events: true,
-      },
+      include: careTaskPatientAndEventsInclude,
     });
   }
 
-  async findByPatient(patientId: string): Promise<CareTask[]> {
+  async findByPatient(patientID: string): Promise<CareTaskPayload[]> {
     return this.prisma.careTask.findMany({
-      where: { patientId },
-      include: {
-        patient: true,
-        events: true,
-      },
+      where: { patientID },
+      include: careTaskPatientAndEventsInclude,
     });
   }
 
-  async findByStatus(status: CareTaskStatus): Promise<CareTask[]> {
+  async findByStatus(status: CareTaskStatus): Promise<CareTaskPayload[]> {
     return this.prisma.careTask.findMany({
       where: { status },
-      include: {
-        patient: true,
-        events: true,
-      },
+      include: careTaskPatientAndEventsInclude,
     });
   }
 
-  async createByExternalId(
-    externalId: string,
-    taskData: Omit<Prisma.CareTaskCreateInput, 'patientId' | 'patient'>,
+  async createByExternalID(
+    externalID: string,
+    taskData: Omit<Prisma.CareTaskCreateInput, 'patientID' | 'patient'>,
   ): Promise<CareTask> {
     // First, find the patient by external ID
     const patient = await this.prisma.patient.findUnique({
-      where: { externalId },
+      where: { externalID },
     });
 
     if (!patient) {
-      throw new NotFoundException(`Patient with external ID ${externalId} not found`);
+      throw new NotFoundException(`Patient with external ID ${externalID} not found`);
     }
 
     // Create the care task with the found patient ID
     return this.prisma.careTask.create({
       data: {
         ...taskData,
-        patientId: patient.id,
+        patientID: patient.id,
       },
       include: {
         patient: true,
