@@ -69,8 +69,12 @@ resource "aws_kms_alias" "care-activation-mysql-dev-kms-alias" {
 }
 
 # Bland AI
-data "aws_secretsmanager_secret" "bland_ai_api_key" {
+data "aws_secretsmanager_secret" "bland_api_key" {
   name = "prod/bland-api-key"
+}
+
+data "aws_secretsmanager_secret" "bland_ai_api_key" {
+  name = "dev/bland-ai-api-key"
 }
 
 # API Keys
@@ -81,6 +85,7 @@ data "aws_secretsmanager_secret" "ca_api_keys" {
 
 locals {
   # ECS secret references (ARN format for valueFrom)
+  bland_api_key_arn               = "${data.aws_secretsmanager_secret.bland_api_key.arn}:API_KEY::"
   bland_ai_api_key_arn            = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:API_KEY::"
   bland_webhook_signature_key_arn = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:WEBHOOK_SIGNATURE_KEY::"
   bland_webhook_url_arn           = "${data.aws_secretsmanager_secret.bland_ai_api_key.arn}:WEBHOOK_URL::"
