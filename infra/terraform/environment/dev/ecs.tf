@@ -255,6 +255,10 @@ module "care-activation-dev" {
             },
             {
               name      = "BLAND_API_KEY"
+              valueFrom = local.bland_api_key_arn
+            },
+            {
+              name      = "BLAND_AI_API_KEY"
               valueFrom = local.bland_ai_api_key_arn
             },
             {
