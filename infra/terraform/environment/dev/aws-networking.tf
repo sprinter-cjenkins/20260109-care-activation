@@ -83,3 +83,7 @@ resource "aws_iam_role_policy" "vpc_flow_logs_policy" {
     ]
   })
 }
+
+output "networking" {
+  value = module.networking
+}

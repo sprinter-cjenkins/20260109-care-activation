@@ -19,6 +19,13 @@ resource "aws_security_group" "care-activation-dev-subnet-app-rds-sg" {
     security_groups = [aws_security_group.care-activation-dev-ecs-sg.id]
   }
 
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ssm_ec2_sg.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
