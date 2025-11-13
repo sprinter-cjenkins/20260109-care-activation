@@ -20,24 +20,24 @@ if [[ "$MODE" == "ecs" ]]; then
   CLUSTER_NAME="care-activation-dev"
   CONTAINER_NAME="care-activation-dev"
 
+  # List running tasks
   echo "Listing running tasks in cluster $CLUSTER_NAME..."
-  TASKS=($(aws ecs list-tasks --cluster "$CLUSTER_NAME" --query "taskArns[]" --output text))
+  TASKS=$(aws ecs list-tasks --cluster "$CLUSTER_NAME" --query "taskArns[]" --output text)
 
-  if [ ${#TASKS[@]} -eq 0 ]; then
+  if [ -z "$TASKS" ]; then
     echo "No running tasks found in cluster $CLUSTER_NAME."
     exit 1
   fi
 
   echo "Available tasks:"
-  for i in "${!TASKS[@]}"; do
-    echo "$((i+1))) ${TASKS[$i]}"
-  done
+  echo "$TASKS"
 
-  # Prompt user for selection
-  read -rp "Select a task number: " TASK_NUM
-  TASK_ID="${TASKS[$((TASK_NUM-1))]}"
+  # Pick the first task (change logic if you want to pick manually)
+  TASK_ID=$(echo $TASKS | awk '{print $1}')
+
   echo "Using task: $TASK_ID"
 
+  # Execute into the container
   echo "Starting ECS Exec session into container $CONTAINER_NAME..."
   aws ecs execute-command \
     --cluster "$CLUSTER_NAME" \
