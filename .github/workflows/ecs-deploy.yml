@@ -1,9 +1,9 @@
 name: ECS Deploy via CodeDeploy
 
 on:
-#  workflow_run:
-#    workflows:
-#      - Docker Build and Push to ECR
+  #  workflow_run:
+  #    workflows:
+  #      - Docker Build and Push to ECR
 
   workflow_dispatch:
 
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        base-environments: [ "dev" ]
+        base-environments: ["dev"]
 
     env:
       TF_IN_AUTOMATION: 1
@@ -80,6 +80,31 @@ jobs:
           echo "CONTAINER_NAME=$CONTAINER_NAME" >> $GITHUB_ENV
           echo "CONTAINER_PORT=$CONTAINER_PORT" >> $GITHUB_ENV
 
+      - name: Extract migration configuration from Terraform
+        id: migration-config
+        working-directory: ${{ env.WORKING-DIRECTORY }}/${{ matrix.base-environments }}
+        run: |
+          # Extract subnet and security group IDs from Terraform outputs
+          SUBNETS=$(terraform output -json | jq -r '.migration_subnets.value | join(",")')
+          SECURITY_GROUPS=$(terraform output -json | jq -r '.migration_security_groups.value | join(",")')
+
+          echo "MIGRATION_SUBNETS=$SUBNETS" >> $GITHUB_ENV
+          echo "MIGRATION_SECURITY_GROUPS=$SECURITY_GROUPS" >> $GITHUB_ENV
+          echo "MIGRATION_TASK_DEF=care-activation-${{ matrix.base-environments }}-migration" >> $GITHUB_ENV
+          echo "ECS_CLUSTER=care-activation-${{ matrix.base-environments }}" >> $GITHUB_ENV
+
+          echo "📋 Migration config:"
+          echo "  Subnets: $SUBNETS"
+          echo "  Security Groups: $SECURITY_GROUPS"
+
+      - name: Run database migrations
+        env:
+          AWS_REGION: us-west-2
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x ./scripts/run-db-migration.sh
+          ./scripts/run-db-migration.sh
+        continue-on-error: false # Stop deployment if migrations fail
 
       - name: Trigger CodeDeploy ECS Deployment
         id: codedeploy

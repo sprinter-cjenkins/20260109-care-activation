@@ -504,3 +504,61 @@ resource "aws_vpc_endpoint" "ec2messages" {
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
 }
+
+# Migration Task Definition
+resource "aws_cloudwatch_log_group" "migrations" {
+  name              = "/ecs/care-activation-${terraform.workspace}-migrations"
+  retention_in_days = 90
+
+  tags = {
+    Environment = terraform.workspace
+    Project     = "care-activation"
+  }
+}
+
+resource "aws_ecs_task_definition" "migration" {
+  family                   = "care-activation-${terraform.workspace}-migration"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "migration"
+      image     = "${aws_ecr_repository.care_activation.repository_url}@${data.aws_ecr_image.care_activation.image_digest}"
+      essential = true
+
+      # Override command to run migrations instead of starting the app
+      command = ["npx", "prisma", "migrate", "deploy"]
+
+      environment    = []
+      mountPoints    = []
+      systemControls = []
+      volumesFrom    = []
+
+      secrets = [
+        {
+          name      = "DATABASE_URL"
+          valueFrom = aws_secretsmanager_secret.care-activation-mysql-dev-db-string.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/care-activation-${terraform.workspace}-migrations"
+          awslogs-region        = data.aws_region.current.name
+          awslogs-stream-prefix = "migration"
+        }
+      }
+    }
+  ])
+
+  tags = {
+    service = "care-activation-${terraform.workspace}-migration"
+    env     = terraform.workspace
+  }
+}
