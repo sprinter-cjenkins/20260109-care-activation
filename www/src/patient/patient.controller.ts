@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
 import { PatientService } from './patient.service';
+import type { PatientFullCreateInput } from './patient.service';
 import { Patient, Prisma } from '@prisma/client';
 
 @Controller('patients')
@@ -19,6 +20,11 @@ export class PatientController {
   @Post('create')
   create(@Body() data: Prisma.PatientCreateInput): Promise<Patient> {
     return this.patientService.createOrUpdate(data);
+  }
+
+  @Post('create-full')
+  createFull(@Body() data: PatientFullCreateInput): Promise<Patient> {
+    return this.patientService.createFull(data);
   }
 
   @Put(':id')
