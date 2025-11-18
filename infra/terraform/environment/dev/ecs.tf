@@ -295,6 +295,32 @@ module "care-activation-dev" {
               awslogs-stream-prefix = "ecs"
             }
           }
+        },
+        {
+          name      = "datadog-agent-${terraform.workspace}"
+          image     = "public.ecr.aws/datadog/agent:latest"
+          essential = true
+
+          environment = [
+            { name = "DD_API_KEY", value = data.aws_secretsmanager_secret_version.datadog_api_key.secret_string },
+            { name = "DD_SITE", value = "us3.datadoghq.com" },
+            { name = "DD_APM_ENABLED", value = "true" },
+            { name = "ECS_FARGATE", value = "true" },
+            { name = "DD_DOGSTATD", value = "true" }
+          ]
+          mountPoints    = []
+          systemControls = []
+          volumesFrom    = []
+          portMappings   = []
+
+/*          logConfiguration = {
+            logDriver = "awslogs"
+            options = {
+              awslogs-group         = "/ecs/care-activation-datadog-agent-${terraform.workspace}"
+              awslogs-region        = data.aws_region.current.name
+              awslogs-stream-prefix = "ecs-datadog"
+            }
+          }*/
         }
       ])
 
