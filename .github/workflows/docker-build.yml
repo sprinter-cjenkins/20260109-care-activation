@@ -61,7 +61,7 @@ jobs:
           docker build \
             --tag $REPO_URI:$COMMIT_TAG \
             --build-arg DD_GIT_REPOSITORY_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} \
-            --build-arg DD_GIT_COMMIT_SHA=${GITHUB_SHA}
+            --build-arg DD_GIT_COMMIT_SHA=${GITHUB_SHA} \
             --cache-from $REPO_URI:latest \
             .
 
