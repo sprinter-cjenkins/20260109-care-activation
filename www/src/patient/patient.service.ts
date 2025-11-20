@@ -11,6 +11,11 @@ export type PatientPayload = Prisma.PatientGetPayload<{
   include: typeof patientNameAndTelecomInclude;
 }>;
 
+export type PatientFullCreateInput = Prisma.PatientCreateInput & {
+  telecom: Prisma.ContactPointCreateManyInput[];
+  name: Prisma.HumanNameCreateManyInput[];
+};
+
 @Injectable()
 export class PatientService {
   constructor(private readonly prisma: PrismaService) {}
@@ -54,5 +59,34 @@ export class PatientService {
       return this.update(existingPatients[0].id, data);
     }
     return this.create(data);
+  }
+
+  async createFull(data: PatientFullCreateInput): Promise<PatientPayload> {
+    const { telecom, name, ...patientData } = data;
+
+    const birthDate =
+      typeof patientData.birthDate === 'string'
+        ? new Date(patientData.birthDate)
+        : patientData.birthDate;
+    const existingPatients = await this.findWhere({
+      externalID: patientData.externalID,
+      birthDate,
+    });
+
+    if (existingPatients.length > 0) {
+      throw new Error(
+        `Patient found with the same externalID and birthDate, count: ${existingPatients.length}`,
+      );
+    }
+
+    return this.prisma.patient.create({
+      data: {
+        ...patientData,
+        birthDate,
+        telecom: { createMany: { data: telecom } },
+        name: { createMany: { data: name } },
+      },
+      include: patientNameAndTelecomInclude,
+    });
   }
 }
