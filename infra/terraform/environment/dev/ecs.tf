@@ -306,7 +306,8 @@ module "care-activation-dev" {
             { name = "DD_SITE", value = "us3.datadoghq.com" },
             { name = "DD_APM_ENABLED", value = "true" },
             { name = "ECS_FARGATE", value = "true" },
-            { name = "DD_DOGSTATD", value = "true" }
+            { name = "DD_DOGSTATD", value = "true" },
+            { name = "DD_IAST_ENABLED", value = "true"}
           ]
           mountPoints    = []
           systemControls = []
