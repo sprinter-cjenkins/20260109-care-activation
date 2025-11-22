@@ -31,7 +31,7 @@ interface GetConversationResponse {
 }
 
 @Injectable()
-export class ElevenLabsProvider implements CallerProvider {
+export class ElevenLabsCallerProvider implements CallerProvider {
   name: string = 'eleven-labs';
   private readonly logger: LoggerNoPHI;
   private readonly elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;

@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
 import { LoggerNoPHI } from '#logger/logger';
-import { buildRequestData, getCitationSchemaID, getPathwayID } from '#caller/utils';
+import { buildRequestData, getCitationSchemaID } from '#caller/utils';
 import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '#caller/utils';
 import type { Request } from 'express';
 import crypto from 'node:crypto';
 import { getErrorMessage } from '#src/utils';
 import { getPatientPhoneNumber } from '#patient/utils';
+import { getBlandAIConfig } from '#src/auth/bland-ai.credentials';
+import { getPathwayID } from '#src/pathway/pathways';
 
 export interface BlandAIResponse {
   status: string;
@@ -34,39 +36,22 @@ export interface ParsedBlandAIResponse {
   summary: BlandAISummary;
 }
 
-function getConfig() {
-  const config = {
-    development: {
-      blandAPIKey: process.env.BLAND_AI_DEVELOPMENT_API_KEY,
-      encryptedKey: process.env.BLAND_AI_DEVELOPMENT_TWILIO_ENCRYPTED_KEY,
-      fromNumber: process.env.BLAND_AI_DEVELOPMENT_FROM_NUMBER,
-    },
-    production: {
-      blandAPIKey: process.env.BLAND_AI_API_KEY,
-      encryptedKey: process.env.BLAND_AI_TWILIO_ENCRYPTED_KEY,
-      fromNumber: process.env.BLAND_AI_FROM_NUMBER,
-    },
-  };
-
-  return process.env.NODE_ENV === 'development' ? config.development : config.production;
-}
-
 @Injectable()
-export class BlandAIProvider implements CallerProvider {
+export class BlandAICallerProvider implements CallerProvider {
   name: string = 'bland-ai';
 
   private readonly blandAPIKey: string;
   private readonly encryptedKey: string;
   private readonly fromNumber: string;
 
-  private readonly blandAPIURL = 'https://api.bland.ai/v1';
+  private readonly blandAPIURL: string;
 
   private readonly logger: LoggerNoPHI;
 
   constructor(logger: LoggerNoPHI) {
     this.logger = logger;
 
-    const { blandAPIKey, encryptedKey, fromNumber } = getConfig();
+    const { blandAPIKey, encryptedKey, fromNumber, blandAPIURL } = getBlandAIConfig();
 
     if (blandAPIKey == null) {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
@@ -82,6 +67,7 @@ export class BlandAIProvider implements CallerProvider {
     this.blandAPIKey = blandAPIKey;
     this.encryptedKey = encryptedKey;
     this.fromNumber = fromNumber;
+    this.blandAPIURL = blandAPIURL;
   }
 
   async initiateCall(request: CallInitiationRequest): Promise<CallResult> {

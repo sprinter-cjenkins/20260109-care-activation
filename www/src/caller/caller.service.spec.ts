@@ -2,10 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CareTaskType, ContactPointSystem } from '@prisma/client';
-import { buildRequestData, getPathwayID, getSummaryPrompt, getVoicemailMessage } from './utils';
+import { buildRequestData, getSummaryPrompt, getVoicemailMessage } from './utils';
 import { getPatientPhoneNumber } from '#patient/utils';
 import { mockPatientPayload, mockCareTaskPayload } from '../../test/mocks';
 import { CareTaskPayload } from '#care-task/care-task.service';
+import { getPathwayID } from '#src/pathway/pathways';
 
 // Mock fetch globally
 global.fetch = jest.fn();

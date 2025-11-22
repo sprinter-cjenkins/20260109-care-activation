@@ -7,7 +7,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '#prisma/prisma.service';
 import { CallResult, CallerProvider } from './providers/caller-provider';
-import { BlandAIProvider } from './providers/bland-ai.provider';
+import { BlandAICallerProvider } from './providers/bland-ai-caller.provider';
 import type { Request } from 'express';
 import { LoggerNoPHI } from '#logger/logger';
 import { getErrorMessage } from '#src/utils';
@@ -24,7 +24,7 @@ export class CallerService {
   private readonly logger: LoggerNoPHI;
   constructor(private readonly prisma: PrismaService) {
     this.logger = new LoggerNoPHI(CallerService.name);
-    this.callerProvider = new BlandAIProvider(this.logger);
+    this.callerProvider = new BlandAICallerProvider(this.logger);
   }
 
   async initiateCall(careTaskID: string): Promise<APICallResult> {

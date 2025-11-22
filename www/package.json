@@ -23,7 +23,8 @@
     "docker:run": "docker run -p 3000:3000 care-activation",
     "docker:compose": "nest build && docker-compose up --build",
     "docker:compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
-    "mfa": "zsh ../scripts/aws-mfa.sh"
+    "mfa": "zsh ../scripts/aws-mfa.sh",
+    "push-pathway": "ts-node -r tsconfig-paths/register scripts/push-pathway.ts"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.16.0",
@@ -32,10 +33,12 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/terminus": "^11.0.0",
     "@prisma/client": "^6.15.0",
+    "capital-t-null-throws": "^2.0.0",
     "dd-trace": "^5.67.0",
     "mysql2": "^3.14.4",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
