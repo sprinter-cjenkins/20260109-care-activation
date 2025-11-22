@@ -4,17 +4,6 @@ FROM node:20.19.5-alpine AS builder
 ENV NODE_VERSION=20.19.5
 ENV NPM_VERSION=10.8.2
 
-ARG NODE_ENV
-ARG BLAND_AI_API_KEY
-ARG BLAND_AI_DEVELOPMENT_API_KEY
-ARG BLAND_AI_WEBHOOK_SECRET
-ARG BLAND_AI_FROM_NUMBER
-ARG BLAND_AI_DEVELOPMENT_FROM_NUMBER
-ARG BLAND_AI_TWILIO_ENCRYPTED_KEY
-ARG BLAND_AI_DEVELOPMENT_TWILIO_ENCRYPTED_KEY
-ARG DATABASE_URL
-ARG SHADOW_DATABASE_URL
-
 WORKDIR /app
 
 # Copy package files and install all dependencies
@@ -30,8 +19,8 @@ RUN npx prisma generate
 # Build the NestJS app
 RUN npm run build
 
-# Push Pathway
-RUN npm run push-pathway
+# TODO (push pathways in production)
+# RUN npm run push-pathway
 
 # Stage 2: Production image
 FROM node:20.19.5-alpine
