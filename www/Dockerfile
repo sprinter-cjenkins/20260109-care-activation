@@ -48,4 +48,4 @@ ENV DD_GIT_COMMIT_SHA=${DD_GIT_COMMIT_SHA}
 EXPOSE 3000
 
 # Run the app
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
