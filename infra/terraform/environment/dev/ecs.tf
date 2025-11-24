@@ -235,7 +235,11 @@ module "care-activation-dev" {
           image     = "${aws_ecr_repository.care_activation.repository_url}@${data.aws_ecr_image.care_activation.image_digest}"
           essential = true
 
-          environment    = []
+          environment    = [
+            {
+              NODE_ENV = "production"
+            }
+          ]
           mountPoints    = []
           systemControls = []
           volumesFrom    = []
