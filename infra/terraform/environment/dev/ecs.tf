@@ -237,7 +237,8 @@ module "care-activation-dev" {
 
           environment    = [
             {
-              NODE_ENV = "production"
+              name = "NODE_ENV"
+              value = "production"
             }
           ]
           mountPoints    = []
