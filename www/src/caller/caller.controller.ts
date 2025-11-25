@@ -2,9 +2,13 @@ import { Controller, Post, Param, HttpCode, HttpStatus, Get, Req } from '@nestjs
 import { CallerService, APICallResult } from './caller.service';
 import type { Request } from 'express';
 import { Public } from '#src/auth/public.decorator';
+import { LoggerNoPHI } from '#logger/logger';
+import { getErrorMessage } from '#src/utils';
 
 @Controller('caller')
 export class CallerController {
+  private readonly logger = new LoggerNoPHI(CallerController.name);
+
   constructor(private readonly callerService: CallerService) {}
 
   @Post('initiate/:taskID')
@@ -26,7 +30,7 @@ export class CallerController {
       await this.callerService.handleWebhook(req);
       return { status: 'ok' };
     } catch (error) {
-      console.error('Failed to handle webhook:', error);
+      this.logger.error('Failed to handle webhook:', { error: getErrorMessage(error) });
       return { status: 'error' };
     }
   }

@@ -23,10 +23,12 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
 import { ApiKeyGuard } from './auth/api-key.guard';
+import { GlobalExceptionFilter } from './filters/GlobalExceptionFilter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalGuards(new ApiKeyGuard(new Reflector()));
   // Configure raw body parsing for webhook endpoint
   app.use('/caller/webhook', bodyParser.raw({ type: '*/*' }));
