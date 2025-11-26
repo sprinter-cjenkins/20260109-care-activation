@@ -4,6 +4,7 @@ import { Node } from '../../util/Node';
 import { Pathway } from '../../util/Pathway';
 import nullThrows from 'capital-t-null-throws';
 import { createVoicemailPathway } from '../../util/createVoicemailPathway';
+import trimPromptWhitespace from '#src/pathway/util/trimPromptWhitespace';
 
 // Position needs to be in this non-rendered object because bland hates you in particular
 type BlandGlobalConfig = {
@@ -53,7 +54,7 @@ export default function buildBlandPathway({
 
   const globalConfig: BlandGlobalConfig = {
     globalConfig: {
-      globalPrompt,
+      globalPrompt: trimPromptWhitespace(globalPrompt),
     },
     position: {
       x: 0,

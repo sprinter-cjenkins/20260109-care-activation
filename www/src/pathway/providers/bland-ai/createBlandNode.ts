@@ -1,3 +1,4 @@
+import trimPromptWhitespace from '#src/pathway/util/trimPromptWhitespace';
 import { Node } from '../../util/Node';
 
 export type BlandNode = {
@@ -41,10 +42,10 @@ export default function createBlandNode(node: Node): BlandNode {
     id: node.id,
     data: {
       name: name ?? 'New Default Node',
-      prompt,
+      prompt: trimPromptWhitespace(prompt ?? ''),
       text,
       isStart,
-      condition,
+      condition: trimPromptWhitespace(condition ?? ''),
       modelOptions: {
         newTemperature: 0.2,
         isSMSReturnNode: false,

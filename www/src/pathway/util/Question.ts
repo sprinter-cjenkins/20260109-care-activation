@@ -50,6 +50,14 @@ export default class Question {
 
   addFollowUp(followUp: { followUpQuestions: Question[]; label: string; description: string }) {
     this.params.replyPaths.followUp = followUp;
+
+    // If we have a moveOn path, change it to not conflict with the follow up path
+    if (this.params.replyPaths.moveOn) {
+      this.params.replyPaths.moveOn.description = `
+        Choose this pathway if the user says no, they don't need any follow up questions or if they don't know, aren't sure, or don't want to answer the question.
+        Examples: "I don't know", "No", "I have not", "I'm not sure", "I don't want to tell you that"
+      `;
+    }
   }
 
   addGiveUp(giveUp: { label: string; description: string; giveUpPrompt: string }) {

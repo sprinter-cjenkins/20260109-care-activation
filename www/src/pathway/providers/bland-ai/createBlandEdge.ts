@@ -1,5 +1,6 @@
 import { v4 } from 'uuid';
 import { BlandNode } from './createBlandNode';
+import trimPromptWhitespace from '#src/pathway/util/trimPromptWhitespace';
 
 export type BlandEdge = {
   id: string;
@@ -27,8 +28,8 @@ export default function createBlandEdge({
   return {
     id: v4(),
     data: {
-      label,
-      description: description ?? '',
+      label: trimPromptWhitespace(label ?? ''),
+      description: trimPromptWhitespace(description ?? ''),
       isHighlighted: false,
     },
     type: 'custom',
