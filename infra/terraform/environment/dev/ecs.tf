@@ -312,14 +312,14 @@ module "care-activation-dev" {
             { name = "DD_APM_ENABLED", value = "true" },
             { name = "ECS_FARGATE", value = "true" },
             { name = "DD_DOGSTATD", value = "true" },
-            { name = "DD_IAST_ENABLED", value = "true"}
+            { name = "DD_IAST_ENABLED", value = "true" }
           ]
           mountPoints    = []
           systemControls = []
           volumesFrom    = []
           portMappings   = []
 
-/*          logConfiguration = {
+          /*          logConfiguration = {
             logDriver = "awslogs"
             options = {
               awslogs-group         = "/ecs/care-activation-datadog-agent-${terraform.workspace}"
@@ -566,5 +566,108 @@ resource "aws_ecs_task_definition" "migration" {
   tags = {
     service = "care-activation-${terraform.workspace}-migration"
     env     = terraform.workspace
+  }
+}
+
+### VANTA CORRECTION - clickup 86b7kjht9
+resource "aws_sns_topic" "alerts" {
+  name = "care-activation-${terraform.workspace}-topic"
+}
+
+resource "aws_sns_topic_subscription" "email_subscription" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = "your-email@example.com" # Replace with your email address
+
+  lifecycle {
+    ignore_changes = [
+      endpoint
+    ]
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "unhealthy_host_count" {
+  actions_enabled     = true
+  alarm_name          = "care-activation-${terraform.workspace}-UnhealthyHostCount"
+  comparison_operator = "GreaterThanThreshold"
+  datapoints_to_alarm = 1
+  evaluation_periods  = 2
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 0
+  alarm_description   = "This alarm monitors unhealthy host count for ALB target group ${split("/", aws_lb_target_group.ecs_target_group_https.arn_suffix)[1]}"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    LoadBalancer = aws_lb.care-activation-dev.arn_suffix
+    TargetGroup  = aws_lb_target_group.ecs_target_group_https.arn_suffix
+  }
+
+  evaluate_low_sample_count_percentiles = null
+  extended_statistic                    = null
+  insufficient_data_actions             = []
+  threshold_metric_id                   = null
+  treat_missing_data                    = "missing"
+  unit                                  = null
+  tags                                  = {}
+}
+
+### VANTA CORRECTION - clickup 86b7ktb6a
+# Create a CloudWatch alarm for target response time
+resource "aws_cloudwatch_metric_alarm" "alb_latency_alarm" {
+  alarm_name          = "care-activation-${terraform.workspace}-high-latency"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "TargetResponseTime"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 1  # 1 second, adjust based on your requirements
+  alarm_description   = "This alarm monitors the latency of the care-activation-${terraform.workspace} load balancer"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    LoadBalancer = aws_lb.care-activation-dev.arn_suffix
+  }
+}
+
+### VANTA CORRECTION - clickup 86b7ktkcx
+resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
+  alarm_name          = "care-activation-dev-5xx-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "HTTPCode_ELB_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = "300"
+  statistic           = "Sum"
+  threshold           = "5"  # Adjust based on your requirements
+  alarm_description   = "This alarm monitors for 5XX errors on the care-activation-${terraform.workspace} load balancer"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    LoadBalancer = aws_lb.care-activation-dev.arn_suffix  # You may need to use the full ARN or name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "backend_5xx_errors" {
+  alarm_name          = "care-activation-${terraform.workspace}-backend-5xx-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = "300"
+  statistic           = "Sum"
+  threshold           = "5"  # Adjust based on your requirements
+  alarm_description   = "This alarm monitors for backend 5XX errors on the care-activation-${terraform.workspace} load balancer"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    LoadBalancer = aws_lb.care-activation-dev.arn_suffix  # You may need to use the full ARN or name
   }
 }
