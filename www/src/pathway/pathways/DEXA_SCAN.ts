@@ -36,11 +36,27 @@ const confirmName = new SimpleRetryQuestion({
   allowIDontKnow: false,
 });
 
-confirmName.addGiveUp({
+const confirmWrongName = new SimpleRetryQuestion({
+  title: 'Confirm wrong name',
+  prompt: `
+    The patient has said a name that doesn't match with {{patient_full_name}}. We need to verify that they are not {{patient_full_name}} or someone authorized to speak on behalf of {{patient_full_name}}.
+    "To confirm, I am not speaking to {{patient_full_name}} or someone authorized to speak on their behalf?"
+  `,
+  allowIDontKnow: false,
+});
+
+confirmWrongName.addGiveUp({
   giveUpPrompt:
     'Apologize for not being able to connect with the correct patient, and politely hang up the call.',
   label: 'User was not patient',
   description: 'User was not the patient or an authorized user.',
+});
+
+confirmName.addFollowUp({
+  label: 'Potentially the wrong person',
+  description:
+    'Follow this pathway if the patient has said their name is something other than {{patient_full_name}}',
+  followUpQuestions: [confirmWrongName],
 });
 
 const confirmDOB = new SimpleRetryQuestion({
@@ -186,8 +202,15 @@ const schedulingPreference = new SimpleRetryQuestion({
   `,
 });
 
+// only continue when we have a window
+nullThrows(schedulingPreference.params.replyPaths.moveOn).description = `
+  Only take this pathway when we get windows like "Tuesdays" instead of single options like "tomorrow". We want the availability to apply to at least a few windows.
+  These are great examples of answers: "Saturdays and Sundays", "Monday and Wednesday afternoon", "Monday mornings", and "Thursday evenings".
+  These are insufficient answers because there aren't enough options: "Tomorrow", "How about this Saturday at 9?".
+`;
+
 const DEXA_SCAN_QUESTION_LIST: Question[] = [
-  confirmName,
+  confirmName, // If their name is something else, follow up to doublecheck
   confirmDOB,
   hasHadPreviousDEXAScan, // and follow ups
   fractures,
