@@ -1,7 +1,7 @@
 import { LoggerNoPHI } from '#logger/logger';
 import { Injectable } from '@nestjs/common';
 import { CareTaskType } from '@prisma/client';
-import { PathwayProvider } from './providers/pathway-provider';
+import { PathwayProvider, QuestionRoutingCaseResult } from './providers/pathway-provider';
 import { BlandAIPathwayProvider } from './providers/bland-ai/bland-ai-pathway.provider';
 
 export interface APIPushResult {
@@ -19,5 +19,9 @@ export class PathwayService {
 
   async push(careTaskType: CareTaskType): Promise<APIPushResult> {
     return await this.pathwayProvider.updatePathway(careTaskType);
+  }
+
+  async test(careTaskType: CareTaskType): Promise<QuestionRoutingCaseResult[]> {
+    return await this.pathwayProvider.testQuestionRouting(careTaskType);
   }
 }
