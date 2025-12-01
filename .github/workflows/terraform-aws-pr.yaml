@@ -6,7 +6,7 @@ on:
       - main
 
     paths:
-      - .github/workflows/terraform-pr.yaml
+      - .github/workflows/terraform-aws-pr.yaml
       - infra/terraform/**/*.tf
       - infra/terraform/**/*.tfvars
 
