@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Patient, Prisma } from '@prisma/client';
 
@@ -53,7 +53,9 @@ export class PatientService {
       birthDate: data.birthDate,
     });
     if (existingPatients.length > 1) {
-      throw new Error('Multiple patients found with the same externalID and birthDate');
+      throw new ConflictException(
+        `Multiple patients found with the same externalID and birthDate, count: ${existingPatients.length}`,
+      );
     }
     if (existingPatients.length === 1) {
       return this.update(existingPatients[0].id, data);
@@ -74,7 +76,7 @@ export class PatientService {
     });
 
     if (existingPatients.length > 0) {
-      throw new Error(
+      throw new ConflictException(
         `Patient found with the same externalID and birthDate, count: ${existingPatients.length}`,
       );
     }

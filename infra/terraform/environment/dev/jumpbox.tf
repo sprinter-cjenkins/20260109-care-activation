@@ -95,3 +95,21 @@ data "aws_ami" "amazon_linux" {
     values = ["amzn2-ami-hvm-*-x86_64-gp2"]
   }
 }
+
+# VANTA CORRECTED ISSUE clickup task 86b7kjht9
+resource "aws_cloudwatch_metric_alarm" "cpu_alarm" {
+  alarm_name          = "high-cpu-usage-${aws_instance.ssm_ec2.id}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "This metric monitors EC2 CPU utilization"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    InstanceId = aws_instance.ssm_ec2.id
+  }
+}

@@ -153,7 +153,7 @@ resource "aws_db_instance" "dev_mysql" {
 
 resource "aws_vpc_endpoint" "rds_vpc_endpoint" {
   vpc_id             = module.networking.ids.vpc_id
-  service_name       = "com.amazonaws.${data.aws_region.current.name}.rds"
+  service_name       = "com.amazonaws.${data.aws_region.current.region}.rds"
   vpc_endpoint_type  = "Interface"
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.rds_vpc_endpoint_sg.id]

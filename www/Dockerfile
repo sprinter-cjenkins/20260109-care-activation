@@ -19,6 +19,9 @@ RUN npx prisma generate
 # Build the NestJS app
 RUN npm run build
 
+# TODO (push pathways in production)
+# RUN npm run push-pathway
+
 # Stage 2: Production image
 FROM node:20.19.5-alpine
 
@@ -45,4 +48,4 @@ ENV DD_GIT_COMMIT_SHA=${DD_GIT_COMMIT_SHA}
 EXPOSE 3000
 
 # Run the app
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]

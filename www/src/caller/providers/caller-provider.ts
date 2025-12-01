@@ -9,7 +9,7 @@ export interface CallResult {
   summary?: CallSummary;
 }
 
-interface CallSummary {
+export interface CallSummary {
   questions: Array<{ key: string; value: string }>;
   other: Array<{ key: string; value: string }>;
   verifications: Array<{ key: string; result: string; expected: string; received: string }>;
