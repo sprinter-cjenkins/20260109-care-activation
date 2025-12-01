@@ -70,7 +70,7 @@ resource "aws_iam_role_policy" "ecs_execution_policy" {
         Sid      = "CreateTaskLogs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-        Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/*"
+        Resource = "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/*"
       },
       {
         Effect = "Allow"
@@ -296,7 +296,7 @@ module "care-activation-dev" {
             logDriver = "awslogs"
             options = {
               awslogs-group         = "/ecs/care-activation-${terraform.workspace}"
-              awslogs-region        = data.aws_region.current.name
+              awslogs-region        = data.aws_region.current.region
               awslogs-stream-prefix = "ecs"
             }
           }
@@ -323,7 +323,7 @@ module "care-activation-dev" {
             logDriver = "awslogs"
             options = {
               awslogs-group         = "/ecs/care-activation-datadog-agent-${terraform.workspace}"
-              awslogs-region        = data.aws_region.current.name
+              awslogs-region        = data.aws_region.current.region
               awslogs-stream-prefix = "ecs-datadog"
             }
           }*/
@@ -378,7 +378,7 @@ resource "aws_security_group" "vpc_endpoint_sg" {
 
 resource "aws_vpc_endpoint" "ecr_api" {
   vpc_id             = module.networking.ids.vpc_id
-  service_name       = "com.amazonaws.${data.aws_region.current.name}.ecr.api"
+  service_name       = "com.amazonaws.${data.aws_region.current.region}.ecr.api"
   vpc_endpoint_type  = "Interface"
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
@@ -386,7 +386,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
 
 resource "aws_vpc_endpoint" "ecr_docker" {
   vpc_id             = module.networking.ids.vpc_id
-  service_name       = "com.amazonaws.${data.aws_region.current.name}.ecr.dkr"
+  service_name       = "com.amazonaws.${data.aws_region.current.region}.ecr.dkr"
   vpc_endpoint_type  = "Interface"
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
@@ -394,7 +394,7 @@ resource "aws_vpc_endpoint" "ecr_docker" {
 
 resource "aws_vpc_endpoint" "secretsmanager" {
   vpc_id             = module.networking.ids.vpc_id
-  service_name       = "com.amazonaws.${data.aws_region.current.name}.secretsmanager"
+  service_name       = "com.amazonaws.${data.aws_region.current.region}.secretsmanager"
   vpc_endpoint_type  = "Interface"
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
@@ -489,7 +489,7 @@ resource "aws_lb_target_group" "ecs_target_group_https" {
 
 resource "aws_vpc_endpoint" "ssm" {
   vpc_id             = module.networking.ids.vpc_id
-  service_name       = "com.amazonaws.${data.aws_region.current.name}.ssm"
+  service_name       = "com.amazonaws.${data.aws_region.current.region}.ssm"
   vpc_endpoint_type  = "Interface"
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
@@ -497,7 +497,7 @@ resource "aws_vpc_endpoint" "ssm" {
 
 resource "aws_vpc_endpoint" "ssmmessages" {
   vpc_id             = module.networking.ids.vpc_id
-  service_name       = "com.amazonaws.${data.aws_region.current.name}.ssmmessages"
+  service_name       = "com.amazonaws.${data.aws_region.current.region}.ssmmessages"
   vpc_endpoint_type  = "Interface"
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
@@ -505,7 +505,7 @@ resource "aws_vpc_endpoint" "ssmmessages" {
 
 resource "aws_vpc_endpoint" "ec2messages" {
   vpc_id             = module.networking.ids.vpc_id
-  service_name       = "com.amazonaws.${data.aws_region.current.name}.ec2messages"
+  service_name       = "com.amazonaws.${data.aws_region.current.region}.ec2messages"
   vpc_endpoint_type  = "Interface"
   subnet_ids         = module.networking.ids.private_subnet_ids
   security_group_ids = [aws_security_group.vpc_endpoint_sg.id]
@@ -556,7 +556,7 @@ resource "aws_ecs_task_definition" "migration" {
         logDriver = "awslogs"
         options = {
           awslogs-group         = "/ecs/care-activation-${terraform.workspace}-migrations"
-          awslogs-region        = data.aws_region.current.name
+          awslogs-region        = data.aws_region.current.region
           awslogs-stream-prefix = "migration"
         }
       }
