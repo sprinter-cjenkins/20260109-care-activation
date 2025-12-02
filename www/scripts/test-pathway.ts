@@ -19,25 +19,28 @@ async function testPathway() {
     const results = await pathwayService.test(careTaskType);
 
     // Print results as a nice table
-    console.log('\n' + '='.repeat(80));
+    console.log('\n' + '='.repeat(88));
     console.log('Test Results:');
-    console.log('='.repeat(80));
+    console.log('='.repeat(88));
 
     // Format table manually to avoid quotes
-    const questionWidth = 35;
-    const answerWidth = 30;
+    const indexWidth = 5;
+    const questionWidth = 20;
+    const answerWidth = 45;
     const rateWidth = 12;
 
     // Header
     console.log(
-      `${'Question'.padEnd(questionWidth)} | ` +
+      `${'Index'.padEnd(indexWidth)} | ` +
+        `${'Question'.padEnd(questionWidth)} | ` +
         `${'Answer'.padEnd(answerWidth)} | ` +
         `${'Success Rate'.padEnd(rateWidth)}`,
     );
-    console.log('-'.repeat(80));
+    console.log('-'.repeat(88));
 
     // Rows
-    results.forEach((r) => {
+    results.forEach((r, index) => {
+      const idx = String(index + 1).padEnd(indexWidth);
       const question = r.question.substring(0, questionWidth).padEnd(questionWidth);
       const answer = r.answer.substring(0, answerWidth).padEnd(answerWidth);
       const rate = `${(r.successRate * 100).toFixed(1)}%`;
@@ -48,16 +51,16 @@ async function testPathway() {
             ? `\x1b[33m${rate}\x1b[0m`
             : `\x1b[31m${rate}\x1b[0m`;
 
-      console.log(`${question} | ${answer} | ${coloredRate}`);
+      console.log(`${idx} | ${question} | ${answer} | ${coloredRate}`);
     });
 
     const avgSuccessRate = results.reduce((sum, r) => sum + r.successRate, 0) / results.length;
 
-    console.log('='.repeat(80));
+    console.log('='.repeat(88));
     console.log(
       `Total Tests: ${results.length} | Average Success Rate: ${(avgSuccessRate * 100).toFixed(1)}%`,
     );
-    console.log('='.repeat(80));
+    console.log('='.repeat(88));
 
     if (avgSuccessRate < 0.8) {
       process.exit(1);
@@ -73,4 +76,4 @@ async function testPathway() {
   }
 }
 
-testPathway();
+void testPathway();

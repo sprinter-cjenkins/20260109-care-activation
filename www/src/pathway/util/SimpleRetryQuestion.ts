@@ -4,12 +4,25 @@ export type SimpleRetryQuestionParams = {
   title: string;
   prompt: string;
   allowIDontKnow: boolean;
+  yesOrNoQuestion?: boolean;
+  tests?: {
+    moveOn?: string[];
+    followUp?: string[];
+    giveUp?: string[];
+    retry?: string[];
+  };
 };
 
 export default class SimpleRetryQuestion extends Question {
-  constructor({ title, prompt, allowIDontKnow }: SimpleRetryQuestionParams) {
+  constructor({
+    title,
+    prompt,
+    allowIDontKnow,
+    yesOrNoQuestion = false,
+    tests,
+  }: SimpleRetryQuestionParams) {
     const iDontKnowExamples = `
-      Examples: "I don't know" "I'm not sure" "I don't want to tell you that"
+      Examples: "I don't know", "I'm not sure", "I don't want to tell you that", "I don't remember"
     `;
     super({
       title,
@@ -21,7 +34,18 @@ export default class SimpleRetryQuestion extends Question {
       replyPaths: {
         moveOn: {
           label: 'Success',
-          description: `User answered the question. "I don't know" is ${allowIDontKnow ? '' : 'not'} an acceptable answer. ${allowIDontKnow ? iDontKnowExamples : ''}`,
+          description: `
+            User answered the question.
+            ${
+              yesOrNoQuestion
+                ? `
+              Yes or no, or any other affirmative or negative response is an answer.
+              Examples: "Yeah", "Yes", "Nope", "Nah"
+            `
+                : ''
+            }
+            "I don't know" is ${allowIDontKnow ? '' : 'not'} an acceptable answer.
+            ${allowIDontKnow ? iDontKnowExamples : ''}`,
         },
         retry: {
           label: 'User did not answer the question',
@@ -30,6 +54,7 @@ export default class SimpleRetryQuestion extends Question {
           retries: 4,
         },
       },
+      tests,
     });
   }
 }
