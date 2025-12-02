@@ -235,9 +235,9 @@ module "care-activation-dev" {
           image     = "${aws_ecr_repository.care_activation.repository_url}@${data.aws_ecr_image.care_activation.image_digest}"
           essential = true
 
-          environment    = [
+          environment = [
             {
-              name = "NODE_ENV"
+              name  = "NODE_ENV"
               value = "production"
             }
           ]
@@ -289,6 +289,14 @@ module "care-activation-dev" {
             {
               name      = "CUSTOMER_API_KEYS_MAP"
               valueFrom = local.ca_api_keys_arn
+            },
+            {
+              name      = "CARTESIA_API_KEY"
+              valueFrom = local.cartesia_api_key_arn
+            },
+            {
+              name      = "CARTESIA_WEBHOOK_SECRET"
+              valueFrom = local.cartesia_webhook_secret_arn
             }
           ]
 
@@ -625,7 +633,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_latency_alarm" {
   namespace           = "AWS/ApplicationELB"
   period              = 300
   statistic           = "Average"
-  threshold           = 1  # 1 second, adjust based on your requirements
+  threshold           = 1 # 1 second, adjust based on your requirements
   alarm_description   = "This alarm monitors the latency of the care-activation-${terraform.workspace} load balancer"
   alarm_actions       = [aws_sns_topic.alerts.arn]
   ok_actions          = [aws_sns_topic.alerts.arn]
@@ -644,13 +652,13 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
   namespace           = "AWS/ApplicationELB"
   period              = "300"
   statistic           = "Sum"
-  threshold           = "5"  # Adjust based on your requirements
+  threshold           = "5" # Adjust based on your requirements
   alarm_description   = "This alarm monitors for 5XX errors on the care-activation-${terraform.workspace} load balancer"
   alarm_actions       = [aws_sns_topic.alerts.arn]
   ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
-    LoadBalancer = aws_lb.care-activation-dev.arn_suffix  # You may need to use the full ARN or name
+    LoadBalancer = aws_lb.care-activation-dev.arn_suffix # You may need to use the full ARN or name
   }
 }
 
@@ -662,12 +670,12 @@ resource "aws_cloudwatch_metric_alarm" "backend_5xx_errors" {
   namespace           = "AWS/ApplicationELB"
   period              = "300"
   statistic           = "Sum"
-  threshold           = "5"  # Adjust based on your requirements
+  threshold           = "5" # Adjust based on your requirements
   alarm_description   = "This alarm monitors for backend 5XX errors on the care-activation-${terraform.workspace} load balancer"
   alarm_actions       = [aws_sns_topic.alerts.arn]
   ok_actions          = [aws_sns_topic.alerts.arn]
 
   dimensions = {
-    LoadBalancer = aws_lb.care-activation-dev.arn_suffix  # You may need to use the full ARN or name
+    LoadBalancer = aws_lb.care-activation-dev.arn_suffix # You may need to use the full ARN or name
   }
 }

@@ -82,6 +82,9 @@ data "aws_secretsmanager_secret" "ca_api_keys" {
   name = "prod/ca-api-keys"
 }
 
+data "aws_secretsmanager_secret" "cartesia_api_keys" {
+  name = "prod/cartesia-api-keys"
+}
 
 locals {
   # ECS secret references (ARN format for valueFrom)
@@ -93,5 +96,7 @@ locals {
   bland_citation_schema_ids_arn   = "${data.aws_secretsmanager_secret.bland_api_key.arn}:CITATION_SCHEMA_IDS::"
   bland_twilio_encrypted_key_arn  = "${data.aws_secretsmanager_secret.bland_api_key.arn}:TWILIO_ENCRYPTED_KEY::"
   ca_api_keys_arn                 = data.aws_secretsmanager_secret.ca_api_keys.arn
+  cartesia_api_key_arn            = "${data.aws_secretsmanager_secret.cartesia_api_keys.arn}:API_KEY::"
+  cartesia_webhook_secret_arn     = "${data.aws_secretsmanager_secret.cartesia_api_keys.arn}:WEBHOOK_SECRET::"
 }
 
