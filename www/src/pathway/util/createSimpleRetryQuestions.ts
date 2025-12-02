@@ -11,11 +11,12 @@ export default function createSimpleRetryQuestions({
   allowIDontKnow: boolean;
 }): Question[] {
   const result: Question[] = [];
-  for (const question of questions) {
+  for (let i = 0; i < questions.length; i++) {
+    const question = questions[i];
     result.push(
       new SimpleRetryQuestion({
         allowIDontKnow,
-        title,
+        title: `${title} ${i}`,
         prompt: `Ask the following question: "${question}"`,
       }),
     );

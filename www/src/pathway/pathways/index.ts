@@ -1,7 +1,11 @@
 import { CareTaskType } from '@prisma/client';
-import { DEXA_SCAN_PATHWAY, globalPrompt, voicemailMessage } from './DEXA_SCAN';
+import {
+  DEXA_SCAN_PATHWAY,
+  DEXA_SCAN_PATHWAY_TESTS,
+  globalPrompt,
+  voicemailMessage,
+} from './DEXA_SCAN';
 import buildBlandPathway from '../providers/bland-ai/buildBlandPathway';
-import { DEXA_SCAN_TESTS } from './DEXA_SCAN.test';
 
 const PRODUCTION_DEXA_PATHWAY_ID = 'b529e181-4184-47fd-b2a8-e4bab2dcdeb9';
 const DEVELOPMENT_DEXA_PATHWAY_ID = '01a835e9-9ede-4919-a33f-43673fc95493';
@@ -9,7 +13,7 @@ const DEVELOPMENT_DEXA_PATHWAY_ID = '01a835e9-9ede-4919-a33f-43673fc95493';
 export function getPathwayTests(taskType: CareTaskType) {
   switch (taskType) {
     case CareTaskType.DEXA_SCAN:
-      return DEXA_SCAN_TESTS;
+      return flattenPathwayTests(DEXA_SCAN_PATHWAY_TESTS);
     default:
       return null;
   }
@@ -37,4 +41,32 @@ export function getPathwayID(careTaskType: CareTaskType) {
     default:
       return null;
   }
+}
+
+export type PathwayTest = {
+  question: string;
+  correctRoutes: {
+    correctRoute: string;
+    answers: string[];
+  }[];
+};
+
+export type FlattenedPathwayTest = {
+  question: string;
+  correctRoute: string;
+  answer: string;
+};
+
+function flattenPathwayTests(tests: PathwayTest[]): FlattenedPathwayTest[] {
+  return tests
+    .map(({ question, correctRoutes }) =>
+      correctRoutes.map(({ correctRoute, answers }) =>
+        answers.map((answer) => ({
+          question,
+          correctRoute,
+          answer,
+        })),
+      ),
+    )
+    .flat(2);
 }

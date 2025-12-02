@@ -2,6 +2,7 @@ import { Node } from './Node';
 import { Pathway } from './Pathway';
 import { v4 } from 'uuid';
 import questionListToPathway from './questionListToPathway';
+import { PathwayTest } from '../pathways';
 
 export type ReplyPaths = {
   moveOn?: {
@@ -29,6 +30,12 @@ export type QuestionParams = {
   title: string;
   prompt: string;
   replyPaths: ReplyPaths;
+  tests?: {
+    moveOn?: string[];
+    retry?: string[];
+    followUp?: string[];
+    giveUp?: string[];
+  };
 };
 
 export default class Question {
@@ -213,5 +220,57 @@ export default class Question {
     resultPathway.push({ node: tooConfusedNode });
 
     return resultPathway;
+  }
+
+  toPathwayTests(moveOnNode: Node): PathwayTest[] {
+    if (this.params.tests == null) return [];
+    const { moveOn, followUp, giveUp, retry } = this.params.tests;
+
+    const nodeName = this.params.title;
+    const giveUpNodeName = `${nodeName} give up`;
+    const moveOnNodeName = moveOnNode.name ?? '';
+    const followUpNodeName =
+      this.params.replyPaths.followUp?.followUpQuestions[0].params.title ?? '';
+    const retryNodeName = `${nodeName} retry 0`;
+
+    return [
+      {
+        question: nodeName,
+        correctRoutes: [
+          ...(giveUp != null
+            ? [
+                {
+                  correctRoute: giveUpNodeName,
+                  answers: giveUp,
+                },
+              ]
+            : []),
+          ...(moveOn != null
+            ? [
+                {
+                  correctRoute: moveOnNodeName,
+                  answers: moveOn,
+                },
+              ]
+            : []),
+          ...(followUp != null
+            ? [
+                {
+                  correctRoute: followUpNodeName,
+                  answers: followUp,
+                },
+              ]
+            : []),
+          ...(retry != null
+            ? [
+                {
+                  correctRoute: retryNodeName,
+                  answers: retry,
+                },
+              ]
+            : []),
+        ],
+      },
+    ];
   }
 }

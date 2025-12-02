@@ -99,83 +99,109 @@ export class BlandAIPathwayProvider implements PathwayProvider {
       throw new Error('Could not found any tests for ' + careTaskType);
     }
 
-    const results = [] as QuestionRoutingCaseResult[];
-    let i = 0;
-    for (const test of tests) {
-      i++;
+    const testPromises = Array.from(
+      new Array(tests.length),
+      () => [],
+    ) as (() => Promise<boolean>)[][];
+    for (let i = 0; i < tests.length; i++) {
+      const test = tests[i];
       const questionID = nodes[test.question];
       const correctRouteID = nodes[test.correctRoute];
 
       // for each question, try it three times to check for consistency
-      let successes = 0;
       for (let j = 0; j < RETRIES; j++) {
-        // create pathway chat
-        try {
-          const pathwayChat = await fetch(`${this.blandAPIURL}/pathway/chat/create`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              authorization: this.blandAPIKey,
-            },
-            body: JSON.stringify({
-              pathway_id: pathwayID,
-              start_node_id: questionID,
-              // TODO vary this input data
-              requestData: {
-                patient_full_name: 'Jiahan Ericsson',
-                plan_name: 'Humana',
-                patient_dob: '01/01/2000',
+        testPromises[i].push(async () => {
+          // create pathway chat
+          try {
+            const pathwayChat = await fetch(`${this.blandAPIURL}/pathway/chat/create`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                authorization: this.blandAPIKey,
               },
-            }),
-          });
+              body: JSON.stringify({
+                pathway_id: pathwayID,
+                start_node_id: questionID,
+                // TODO vary this input data
+                requestData: {
+                  patient_full_name: 'Jiahan Ericsson',
+                  plan_name: 'Humana',
+                  patient_dob: '01/01/1999',
+                },
+              }),
+            });
 
-          if (!pathwayChat.ok) {
-            const errorText = await pathwayChat.text();
-            throw new Error(
-              `Bland AI API error: ${pathwayChat.status} ${pathwayChat.statusText} - ${errorText}`,
-            );
+            if (!pathwayChat.ok) {
+              const errorText = await pathwayChat.text();
+              throw new Error(
+                `Bland AI API error: ${pathwayChat.status} ${pathwayChat.statusText} - ${errorText}`,
+              );
+            }
+
+            const pathwayChatObject = (await pathwayChat.json()) as {
+              data: { chat_id: string };
+            };
+            const chatID = pathwayChatObject.data.chat_id;
+
+            // push a message to the pathway chat and see what it says back
+            const chatResponse = await fetch(`${this.blandAPIURL}/pathway/chat/${chatID}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                authorization: this.blandAPIKey,
+              },
+              body: JSON.stringify({ message: test.answer }),
+            });
+
+            if (!chatResponse.ok) {
+              const errorText = await chatResponse.text();
+              throw new Error(
+                `Bland AI API error: ${chatResponse.status} ${chatResponse.statusText} - ${errorText}`,
+              );
+            }
+
+            const chatResponseObject = (await chatResponse.json()) as {
+              data: {
+                current_node_id: string;
+                current_node_name: string;
+                assistant_responses: string;
+              };
+            };
+            const currentNodeID = chatResponseObject.data.current_node_id;
+
+            if (currentNodeID === correctRouteID) {
+              console.log(`test (${i + 1}/${tests.length}) retry (${j + 1}/${RETRIES}): correct!`);
+            } else {
+              console.log(
+                `test (${i + 1}/${tests.length}) retry (${j + 1}/${RETRIES}): wrong :( [${chatResponseObject.data.current_node_name} != ${test.correctRoute}]`,
+              );
+              console.log(`Response: ${chatResponseObject.data.assistant_responses}`);
+            }
+
+            return currentNodeID === correctRouteID;
+          } catch (error) {
+            this.logger.error(`Failed to test question routing:`, {
+              error: getErrorMessage(error),
+            });
           }
-
-          const pathwayChatObject = (await pathwayChat.json()) as { data: { chat_id: string } };
-          const chatID = pathwayChatObject.data.chat_id;
-
-          // push a message to the pathway chat and see what it says back
-          const chatResponse = await fetch(`${this.blandAPIURL}/pathway/chat/${chatID}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              authorization: this.blandAPIKey,
-            },
-            body: JSON.stringify({ message: test.answer }),
-          });
-
-          if (!chatResponse.ok) {
-            const errorText = await chatResponse.text();
-            throw new Error(
-              `Bland AI API error: ${chatResponse.status} ${chatResponse.statusText} - ${errorText}`,
-            );
-          }
-
-          const chatResponseObject = (await chatResponse.json()) as {
-            data: { current_node_id: string };
-          };
-          const currentNodeID = chatResponseObject.data.current_node_id;
-
-          if (currentNodeID === correctRouteID) {
-            successes++;
-            console.log(`test (${i}/${tests.length}) retry (${j + 1}/${RETRIES}): success!`);
-          } else {
-            console.log(`test (${i}/${tests.length}) retry (${j + 1}/${RETRIES}): failed :(`);
-          }
-        } catch (error) {
-          this.logger.error(`Failed to test question routing:`, { error: getErrorMessage(error) });
-        }
+          return false;
+        });
       }
+    }
+
+    // now actually run the API queries for the tests
+    const results = [] as QuestionRoutingCaseResult[];
+    for (let i = 0; i < tests.length; i++) {
+      console.log(`round ${i}: ${tests[i].question} - ${tests[i].answer}`);
+      const runs = await Promise.all(testPromises[i].map((pr) => pr()));
+      const successes = runs.reduce((acc, run) => acc + (run ? 1 : 0), 0);
+
       results.push({
         successRate: successes / RETRIES,
-        ...test,
+        ...tests[i],
       });
     }
+
     return results;
   }
 
