@@ -256,6 +256,8 @@ export class CallerService {
     this.logger.log('Received webhook:', request.body as Record<string, unknown>);
 
     const parsedData = await this.callerProvider.parseWebhook(request);
-    await this.updateCallEvent(parsedData);
+    if (parsedData) {
+      await this.updateCallEvent(parsedData);
+    }
   }
 }
