@@ -24,5 +24,5 @@ export interface CallInitiationRequest {
 export interface CallerProvider {
   initiateCall: (request: CallInitiationRequest) => Promise<CallResult>;
   getCall: (callID: string) => Promise<CallResult>;
-  parseWebhook: (request: Request) => Promise<CallResult>;
+  parseWebhook: (request: Request) => Promise<CallResult | null>;
 }

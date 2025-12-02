@@ -6,6 +6,7 @@ import { getPatientPhoneNumber } from '#patient/utils';
 import { getErrorMessage } from '#src/utils';
 
 const DEXA_AGENT_ID = 'agent_FRvL6X7Df537CNqarejeiE';
+const SUPPORTED_WEBHOOK_TYPES = ['call_completed', 'call_failed', 'call_started'];
 
 export interface CartesiaInitiateCallResponse {
   agent_id: string;
@@ -18,20 +19,22 @@ export interface CartesiaInitiateCallResponse {
   status: string;
 }
 
+export interface CartesiaCallTranscriptEntry {
+  role: 'user' | 'assistant' | 'system';
+  text: string;
+  log_metric: {
+    name: string;
+    value: string;
+    timestamp: string;
+  };
+}
+
 export interface CartesiaGetCallResponse {
   id: string;
   agent_id: string;
   start_time: string;
   end_time: string;
-  transcript: {
-    role: 'user' | 'assistant' | 'system';
-    text: string;
-    log_metric: {
-      name: string;
-      value: string;
-      timestamp: string;
-    };
-  }[];
+  transcript: CartesiaCallTranscriptEntry[];
   summary: string;
   status: string;
   error_message: string;
@@ -68,6 +71,16 @@ export interface CartesiaVerificationMetricValue {
   received: string;
   expected: string;
   result: boolean;
+}
+
+export interface CartesiaWebhookRequest {
+  type: 'call_completed' | 'call_started' | 'call_failed';
+  request_id: string;
+  call_id: string;
+  agent_id: string;
+  webhook_id: string;
+  timestamp: string;
+  body: CartesiaCallTranscriptEntry[];
 }
 
 @Injectable()
@@ -125,7 +138,6 @@ export class CartesiaCallerProvider implements CallerProvider {
     }
   }
 
-  // TODO Implement
   async getCall(callID: string): Promise<CallResult> {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
@@ -150,71 +162,9 @@ export class CartesiaCallerProvider implements CallerProvider {
 
       const data = (await response.json()) as CartesiaGetCallResponse;
 
-      let metricsData: CartesiaGetMetricsResponse | undefined;
-      const params = new URLSearchParams({
-        call_id: callID,
-      });
-      const metricsResponse = await fetch(
-        `https://api.cartesia.ai/agents/metrics/results?${params.toString()}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-            'Cartesia-Version': '2025-04-16',
-          },
-        },
-      );
-      if (!metricsResponse.ok) {
-        const errorText = await metricsResponse.text();
-        this.logger.error('Failed to get metrics:', {
-          error: errorText,
-          callID,
-        });
-      } else {
-        metricsData = (await metricsResponse.json()) as CartesiaGetMetricsResponse;
-      }
-      const requestedOptOut =
-        metricsData?.data.find((metric) => metric.metricName === 'did_patient_request_opt_out')
-          ?.value === true;
+      const metricsData = await this.getMetricsData(callID);
 
-      const sentiment = metricsData?.data.find(
-        (metric) => metric.metricName === 'sentiment_analysis',
-      )?.value as number;
-
-      const questions = data.transcript
-        .filter((entry) => entry?.log_metric?.name === 'questionnaire_question')
-        .map((entry) => {
-          const value = JSON.parse(entry.log_metric.value) as CartesiaQuestionnaireMetricValue;
-          return {
-            key: value.question_text,
-            value: value.answer,
-          };
-        });
-
-      const verifications = data.transcript
-        .filter((entry) => entry?.log_metric?.name === 'verification_question')
-        .map((entry) => {
-          const value = JSON.parse(entry.log_metric.value) as CartesiaVerificationMetricValue;
-          return {
-            key: value.verification_question_id,
-            received: value.received,
-            expected: value.expected,
-            result: value.result.toString(),
-          };
-        });
-
-      const callSummary: CallSummary = {
-        questions,
-        verifications,
-        other: [
-          {
-            key: 'sentiment',
-            value: sentiment.toString(),
-          },
-        ],
-        requested_opt_out: requestedOptOut,
-      };
+      const callSummary = this.getCallSummaryFromTranscriptAndMetrics(data.transcript, metricsData);
 
       return {
         callID,
@@ -231,11 +181,141 @@ export class CartesiaCallerProvider implements CallerProvider {
     }
   }
 
-  // TODO Implement
-  async parseWebhook(_request: Request): Promise<CallResult> {
+  async getMetricsData(callID: string): Promise<CartesiaGetMetricsResponse | null> {
+    const apiKey = process.env.CARTESIA_API_KEY;
+    if (!apiKey) {
+      throw new Error('CARTESIA_API_KEY environment variable not set');
+    }
+
+    let metricsData: CartesiaGetMetricsResponse | null = null;
+    const params = new URLSearchParams({
+      call_id: callID,
+    });
+    const metricsResponse = await fetch(
+      `https://api.cartesia.ai/agents/metrics/results?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'Cartesia-Version': '2025-04-16',
+        },
+      },
+    );
+    console.log('metricsResponse', metricsResponse, apiKey);
+    if (!metricsResponse.ok) {
+      const errorText = await metricsResponse.text();
+      this.logger.error('Failed to get metrics:', {
+        error: errorText,
+        callID,
+      });
+    } else {
+      metricsData = (await metricsResponse.json()) as CartesiaGetMetricsResponse;
+      console.log('metricsData', metricsData);
+    }
+    return metricsData;
+  }
+
+  getCallSummaryFromTranscriptAndMetrics(
+    transcript: CartesiaCallTranscriptEntry[] | null,
+    metricsData: CartesiaGetMetricsResponse | null,
+  ): CallSummary {
+    if (!transcript) {
+      return {
+        questions: [],
+        verifications: [],
+        other: [],
+        requested_opt_out: false,
+      };
+    }
+    const requestedOptOut =
+      metricsData?.data.find((metric) => metric.metricName === 'did_patient_request_opt_out')
+        ?.value === true;
+
+    const sentiment = metricsData?.data.find((metric) => metric.metricName === 'sentiment_analysis')
+      ?.value as number;
+
+    const questions = transcript
+      .filter((entry) => entry?.log_metric?.name === 'questionnaire_question')
+      .map((entry) => {
+        const value = JSON.parse(entry.log_metric.value) as CartesiaQuestionnaireMetricValue;
+        return {
+          key: value.question_text,
+          value: value.answer,
+        };
+      });
+
+    const verifications = transcript
+      .filter((entry) => entry?.log_metric?.name === 'verification_question')
+      .map((entry) => {
+        const value = JSON.parse(entry.log_metric.value) as CartesiaVerificationMetricValue;
+        return {
+          key: value.verification_question_id,
+          received: value.received,
+          expected: value.expected,
+          result: value.result.toString(),
+        };
+      });
+
+    const callSummary: CallSummary = {
+      questions,
+      verifications,
+      other: sentiment
+        ? [
+            {
+              key: 'sentiment',
+              value: sentiment.toString(),
+            },
+          ]
+        : [],
+      requested_opt_out: requestedOptOut,
+    };
+
+    return callSummary;
+  }
+
+  parseWebhook(request: Request): Promise<CallResult | null> {
+    const headersSecret = request.headers['x-webhook-secret'] as string | undefined;
+    if (!headersSecret) {
+      throw new Error('X-Webhook-Secret header not found');
+    }
+
+    const secret = process.env.CARTESIA_WEBHOOK_SECRET;
+    if (!secret) {
+      throw new Error('CARTESIA_WEBHOOK_SECRET environment variable not set');
+    }
+
+    if (headersSecret !== secret) {
+      throw new Error('Invalid webhook secret');
+    }
+
+    const parsedBody = (request.body as Buffer).toString('utf8');
+
+    const data = JSON.parse(parsedBody) as CartesiaWebhookRequest;
+
+    if (!SUPPORTED_WEBHOOK_TYPES.includes(data.type)) {
+      return Promise.resolve(null);
+    }
+    const callID = data.call_id;
+    let status: 'initiated' | 'completed' | 'failed';
+    switch (data.type) {
+      case 'call_completed':
+        status = 'completed';
+        break;
+      case 'call_failed':
+        status = 'failed';
+        break;
+      case 'call_started':
+        status = 'initiated';
+        break;
+    }
+
+    const callSummary = this.getCallSummaryFromTranscriptAndMetrics(data.body, null); // TODO need to schedule metrics data fetch
     return Promise.resolve({
-      callID: '',
-      status: 'failed',
+      callID,
+      status,
+      summary: callSummary,
+      answeredBy: 'human', // TODO: add voicemail detection
     });
   }
 }
