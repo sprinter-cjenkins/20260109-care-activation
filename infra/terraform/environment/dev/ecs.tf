@@ -315,31 +315,95 @@ module "care-activation-dev" {
           essential = true
 
           environment = [
-            { name = "DD_API_KEY", value = data.aws_secretsmanager_secret_version.datadog_api_key.secret_string },
-            { name = "DD_SITE", value = "us3.datadoghq.com" },
-            { name = "DD_APM_ENABLED", value = "true" },
-            { name = "ECS_FARGATE", value = "true" },
-            { name = "DD_DOGSTATD", value = "true" },
-            { name = "DD_IAST_ENABLED", value = "true" },
-            { name = "DD_LOGS_ENABLED", value = "true" },
-            { name = "DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL", value = "true" },
-            { name = "DD_LOGS_JSON", value = "true" },
-          ]
-          mountPoints    = []
-          systemControls = []
-          volumesFrom    = []
-          portMappings   = []
+      {
+        name  = "DD_API_KEY"
+        value = data.aws_secretsmanager_secret_version.datadog_api_key.secret_string
+      },
+      {
+        name  = "DD_SITE"
+        value = "us3.datadoghq.com"
+      },
+      {
+        name  = "DD_LOGS_ENABLED"
+        value = "true"
+      },
+      {
+        name  = "DD_APM_ENABLED"
+        value = "true"
+      },
+      {
+        name  = "DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL"
+        value = "true"
+      },
+      {
+        name  = "DD_LOGS_JSON"
+        value = "true"
+      },
+      {
+        name  = "DD_CONTAINER_EXCLUDE"
+        value = "image:datadog/agent:*"
+      }
+    ]
 
-          /*          logConfiguration = {
-            logDriver = "awslogs"
-            options = {
-              awslogs-group         = "/ecs/care-activation-datadog-agent-${terraform.workspace}"
-              awslogs-region        = data.aws_region.current.region
-              awslogs-stream-prefix = "ecs-datadog"
-            }
-          }*/
-        }
-      ])
+    mount_points = [
+      {
+        source_volume  = "docker-socket"
+        container_path = "/var/run/docker.sock"
+        read_only      = true
+      },
+      {
+        source_volume  = "docker-containers"
+        container_path = "/var/lib/docker/containers"
+        read_only      = true
+      },
+      {
+        source_volume  = "proc-host"
+        container_path = "/host/proc"
+        read_only      = true
+      },
+      {
+        source_volume  = "datadog-run"
+        container_path = "/opt/datadog-agent/run"
+        read_only      = false
+      },
+      {
+        source_volume  = "sysfs"
+        container_path = "/host/sys/fs/cgroup"
+        read_only      = true
+      }
+    ]
+
+    log_configuration = {
+      log_driver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/datadog-agent"
+        "awslogs-region"        = "us-west-2"
+        "awslogs-stream-prefix" = "ecs-datadog-agent"
+      }
+    }
+
+      volumes = [{
+        name      = "docker-socket"
+        host_path = "/var/run/docker.sock"
+      },
+      {
+        name      = "docker-containers"
+        host_path = "/var/lib/docker/containers"
+      },
+      {
+        name      = "proc-host"
+        host_path = "/proc"
+      },
+      {
+        name      = "datadog-run"
+        host_path = "/opt/datadog-agent/run"
+      },
+      {
+        name      = "sysfs"
+        host_path = "/sys/fs/cgroup"
+      }]
+    }
+  ])
 
       enable_efs             = false
       ephemeral_storage_size = 40
