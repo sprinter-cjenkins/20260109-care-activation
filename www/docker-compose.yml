@@ -65,8 +65,13 @@ services:
       - DD_APM_ENABLED=true
       - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
       - DD_LOGS_JSON=true
+      - DD_CONTAINER_EXCLUDE=image:datadog/agent:*
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /proc/:/host/proc/:ro
+      - /opt/datadog-agent/run:/opt/datadog-agent/run:rw
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
 
 volumes:
   mysql-data:
