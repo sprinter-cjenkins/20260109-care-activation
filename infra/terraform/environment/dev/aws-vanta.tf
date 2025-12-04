@@ -75,9 +75,9 @@ resource "aws_iam_account_password_policy" "strict" {
 
 resource "aws_guardduty_detector" "us_west_2" {
   provider = aws.us_west_2
-  
+
   enable = true
-  
+
   datasources {
     s3_logs {
       enable = true
@@ -108,7 +108,7 @@ resource "aws_sns_topic_subscription" "guardduty_findings_email_west" {
   provider  = aws.west
   topic_arn = aws_sns_topic.guardduty_findings_west.arn
   protocol  = "email"
-  endpoint  = "ca-guardduty@sprinterhealth.com"  # Replace with your email
+  endpoint  = "ca-guardduty@sprinterhealth.com" # Replace with your email
 }
 
 resource "aws_iam_role" "eventbridge_sns_role" {
@@ -136,8 +136,8 @@ resource "aws_iam_policy" "sns_publish_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action   = "sns:Publish"
-        Effect   = "Allow"
+        Action = "sns:Publish"
+        Effect = "Allow"
         Resource = [
           aws_sns_topic.guardduty_findings_west.arn
         ]
@@ -175,7 +175,7 @@ resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
     "vpc-0bcf44af61b481cd3",
     "care-activation-dev-vpc"
   ])
-  
+
   name              = "/aws/vpc/flowlogs/${each.key}"
   retention_in_days = 30 # Adjust retention period as needed
 }
@@ -184,7 +184,7 @@ data "aws_vpc" "target_vpcs" {
   for_each = toset([
     "vpc-0bcf44af61b481cd3"
   ])
-  
+
   id = each.key
 }
 
@@ -204,14 +204,14 @@ locals {
 
 resource "aws_flow_log" "vpc_flow_logs" {
   for_each = local.all_vpcs
-  
+
   vpc_id          = each.value.id
   traffic_type    = "ALL" # Options: ACCEPT, REJECT, ALL
   iam_role_arn    = aws_iam_role.vpc_flow_logs_role.arn
   log_destination = aws_cloudwatch_log_group.vpc_flow_logs[each.key].arn
-  
+
   log_format = "$${version} $${account-id} $${interface-id} $${srcaddr} $${dstaddr} $${srcport} $${dstport} $${protocol} $${packets} $${bytes} $${start} $${end} $${action} $${log-status}"
-  
+
   tags = {
     Name = "flow-logs-${each.key}"
   }
@@ -224,7 +224,7 @@ resource "aws_sns_topic" "rds_cpu_alarm_topic" {
 resource "aws_sns_topic_subscription" "rds_cpu_alarm_email" {
   topic_arn = aws_sns_topic.rds_cpu_alarm_topic.arn
   protocol  = "email"
-  endpoint  = "ca-guardduty@sprinterhealth.com"  # Replace with your email address
+  endpoint  = "ca-guardduty@sprinterhealth.com" # Replace with your email address
 }
 
 resource "aws_cloudwatch_metric_alarm" "rds_cpu_alarm" {
@@ -239,7 +239,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_alarm" {
   alarm_description   = "This metric monitors RDS CPU utilization"
   alarm_actions       = [aws_sns_topic.rds_cpu_alarm_topic.arn]
   ok_actions          = [aws_sns_topic.rds_cpu_alarm_topic.arn]
-  
+
   dimensions = {
     DBInstanceIdentifier = "care-activation-dev-mysql-db"
   }
@@ -253,11 +253,11 @@ resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory_alarm" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = 1073741824  # 1 GB in bytes - adjust based on your instance size
+  threshold           = 1073741824 # 1 GB in bytes - adjust based on your instance size
   alarm_description   = "This alarm monitors RDS freeable memory"
   alarm_actions       = [aws_sns_topic.rds_alarms.arn]
   ok_actions          = [aws_sns_topic.rds_alarms.arn]
-  
+
   dimensions = {
     DBInstanceIdentifier = "care-activation-dev-mysql-db"
   }
@@ -270,7 +270,7 @@ resource "aws_sns_topic" "rds_alarms" {
 resource "aws_sns_topic_subscription" "rds_alarms_email" {
   topic_arn = aws_sns_topic.rds_alarms.arn
   protocol  = "email"
-  endpoint  = "ca-guardduty@sprinterhealth.com"  # Replace with your email address
+  endpoint  = "ca-guardduty@sprinterhealth.com" # Replace with your email address
 }
 
 # Get the RDS instance details
@@ -287,11 +287,11 @@ resource "aws_cloudwatch_metric_alarm" "disk_queue_depth" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = 10  # Adjust based on your requirements
+  threshold           = 10 # Adjust based on your requirements
   alarm_description   = "Alarm when disk queue depth exceeds threshold"
   alarm_actions       = [aws_sns_topic.rds_alarms.arn]
   ok_actions          = [aws_sns_topic.rds_alarms.arn]
-  
+
   dimensions = {
     DBInstanceIdentifier = data.aws_db_instance.db.db_instance_identifier
   }
@@ -306,11 +306,11 @@ resource "aws_cloudwatch_metric_alarm" "read_iops" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = 500  # Adjust based on your requirements
+  threshold           = 500 # Adjust based on your requirements
   alarm_description   = "Alarm when read IOPS exceeds threshold"
   alarm_actions       = [aws_sns_topic.rds_alarms.arn]
   ok_actions          = [aws_sns_topic.rds_alarms.arn]
-  
+
   dimensions = {
     DBInstanceIdentifier = data.aws_db_instance.db.db_instance_identifier
   }
@@ -325,11 +325,11 @@ resource "aws_cloudwatch_metric_alarm" "write_iops" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = 500  # Adjust based on your requirements
+  threshold           = 500 # Adjust based on your requirements
   alarm_description   = "Alarm when write IOPS exceeds threshold"
   alarm_actions       = [aws_sns_topic.rds_alarms.arn]
   ok_actions          = [aws_sns_topic.rds_alarms.arn]
-  
+
   dimensions = {
     DBInstanceIdentifier = data.aws_db_instance.db.db_instance_identifier
   }
@@ -342,7 +342,7 @@ resource "aws_sns_topic" "rds_storage_alerts" {
 resource "aws_sns_topic_subscription" "rds_storage_alerts_email" {
   topic_arn = aws_sns_topic.rds_storage_alerts.arn
   protocol  = "email"
-  endpoint  = "ca-guardduty@sprinterhealth.com"  # Replace with your email address
+  endpoint  = "ca-guardduty@sprinterhealth.com" # Replace with your email address
 }
 
 resource "aws_cloudwatch_metric_alarm" "rds_free_storage_space" {
@@ -353,11 +353,11 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage_space" {
   namespace           = "AWS/RDS"
   period              = "300"
   statistic           = "Average"
-  threshold           = "10000000000"  # 10GB in bytes, adjust as needed
+  threshold           = "10000000000" # 10GB in bytes, adjust as needed
   alarm_description   = "This alarm monitors free storage space for RDS instance"
   alarm_actions       = [aws_sns_topic.rds_storage_alerts.arn]
   ok_actions          = [aws_sns_topic.rds_storage_alerts.arn]
-  
+
   dimensions = {
     DBInstanceIdentifier = "care-activation-dev-mysql-db"
   }
