@@ -9,6 +9,7 @@ module "log_forwarder" {
 
   kms_alias             = aws_kms_alias.datadog.name
   dd_api_key_secret_arn = data.aws_secretsmanager_secret.datadog_api_key.arn
+  dd_site               = "us3.datadoghq.com"
 
   tags = local.tags
 }
