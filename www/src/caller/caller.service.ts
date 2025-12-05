@@ -6,12 +6,12 @@ import {
   ContactPointSystem,
 } from '@prisma/client';
 import { PrismaService } from '#prisma/prisma.service';
-import { CallResult, CallerProvider } from './providers/caller-provider';
-import { BlandAICallerProvider } from './providers/bland-ai-caller.provider';
+import { CallResult } from './providers/caller-provider';
 import type { Request } from 'express';
 import { LoggerNoPHI } from '#logger/logger';
 import { getErrorMessage } from '#src/utils';
 import { incrementMetric } from '#logger/metrics';
+import { CallerProviderRegistry } from './providers/caller-provider.registry';
 
 export interface APICallResult extends CallResult {
   message: string;
@@ -19,12 +19,12 @@ export interface APICallResult extends CallResult {
 
 @Injectable()
 export class CallerService {
-  private readonly callerProvider: CallerProvider;
-
   private readonly logger: LoggerNoPHI;
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly callerProviderRegistry: CallerProviderRegistry,
+  ) {
     this.logger = new LoggerNoPHI(CallerService.name);
-    this.callerProvider = new BlandAICallerProvider(this.logger);
   }
 
   async initiateCall(careTaskID: string): Promise<APICallResult> {
@@ -62,7 +62,9 @@ export class CallerService {
       patientID: patient.id,
     });
 
-    const callResult = await this.callerProvider.initiateCall({
+    const callerProvider = this.callerProviderRegistry.getProvider(careTask.callerProvider);
+
+    const callResult = await callerProvider.initiateCall({
       patient,
       careTaskType,
     });
@@ -101,7 +103,21 @@ export class CallerService {
   async getCall(callID: string): Promise<APICallResult> {
     this.logger.log(`Getting call status for call ${callID}`);
     try {
-      const callResult = await this.callerProvider.getCall(callID);
+      const careTaskEvent = await this.prisma.careTaskEvent.findFirstOrThrow({
+        where: { externalID: callID },
+        include: {
+          careTask: true,
+        },
+      });
+
+      if (!careTaskEvent) {
+        throw new Error('Care task not found');
+      }
+
+      const careTask = careTaskEvent.careTask;
+
+      const callerProvider = this.callerProviderRegistry.getProvider(careTask.callerProvider);
+      const callResult = await callerProvider.getCall(callID);
       await this.updateCallEvent(callResult);
       let message = '';
       if (callResult.status === 'completed') {
@@ -253,9 +269,14 @@ export class CallerService {
   }
 
   async handleWebhook(request: Request): Promise<void> {
-    this.logger.log('Received webhook:', request.body as Record<string, unknown>);
+    this.logger.log('Received webhook:', {
+      body: (request.body as Buffer).toString('utf8'),
+      headers: request.headers,
+      url: request.url,
+    });
 
-    const parsedData = await this.callerProvider.parseWebhook(request);
+    const callerProvider = this.callerProviderRegistry.getProviderFromWebhookRequest(request);
+    const parsedData = await callerProvider.parseWebhook(request);
     if (parsedData) {
       await this.updateCallEvent(parsedData);
     }
