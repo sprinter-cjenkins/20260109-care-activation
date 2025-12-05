@@ -42,6 +42,12 @@ enum CareTaskEventResultType {
   VERIFICATION
 }
 
+enum CallerProvider {
+  BLAND_AI
+  CARTESIA
+  ELEVEN_LABS
+}
+
 // FHIR: https://www.hl7.org/fhir/datatypes-definitions.html#ContactPoint.system
 enum ContactPointSystem {
   PHONE
@@ -130,6 +136,7 @@ model CareTask {
   status    CareTaskStatus  @default(PENDING)
   type      CareTaskType
   updatedAt DateTime        @updatedAt
+  callerProvider CallerProvider @default(BLAND_AI)
 }
 
 model CareTaskEvent {

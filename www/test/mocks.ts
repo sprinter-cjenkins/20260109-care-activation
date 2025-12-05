@@ -1,6 +1,7 @@
 import { CareTaskPayload } from '#care-task/care-task.service';
 import { PatientPayload } from '#patient/patient.service';
 import {
+  CallerProvider,
   CareTaskStatus,
   CareTaskType,
   ContactPointSystem,
@@ -65,4 +66,5 @@ export const mockCareTaskPayload: CareTaskPayload = {
   updatedAt: new Date(),
   patient: mockPatientPayload,
   events: [],
+  callerProvider: CallerProvider.BLAND_AI,
 };

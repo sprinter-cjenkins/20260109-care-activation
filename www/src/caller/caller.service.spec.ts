@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CareTaskType, ContactPointSystem } from '@prisma/client';
+import { CallerProvider, CareTaskEvent, CareTaskType, ContactPointSystem } from '@prisma/client';
 import { buildRequestData, getSummaryPrompt, getVoicemailMessage } from './utils';
 import { getPatientPhoneNumber } from '#patient/utils';
 import { mockPatientPayload, mockCareTaskPayload } from '../../test/mocks';
 import { CareTaskPayload } from '#care-task/care-task.service';
 import { getPathwayID } from '#src/pathway/pathways';
+import { CallerProviderRegistry } from '#caller/providers/caller-provider.registry';
+import { Request } from 'express';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -53,6 +55,7 @@ describe('CallerService', () => {
             },
           },
         },
+        CallerProviderRegistry,
       ],
     }).compile();
 
@@ -141,7 +144,11 @@ describe('CallerService', () => {
     const mockCareTaskUpdateEvent = jest.fn().mockResolvedValue({});
     const mockCareTaskFindFirstOrThrow = jest.fn().mockResolvedValue({
       id: callID,
-      careTask: { patientID: mockPatientPayload.id, patient: { optedOutChannels: [] } },
+      careTask: {
+        patientID: mockPatientPayload.id,
+        patient: { optedOutChannels: [] },
+        callerProvider: CallerProvider.BLAND_AI,
+      },
     });
     const mockPatientOptOutCreate = jest.fn().mockResolvedValue({});
     const mockCareTaskEventResultCreateMany = jest.fn().mockResolvedValue({});
@@ -266,6 +273,7 @@ describe('CallerService', () => {
               { contactPointSystem: ContactPointSystem.PHONE, createdAt: new Date() },
             ],
           },
+          callerProvider: CallerProvider.BLAND_AI,
         },
       });
 
@@ -287,6 +295,55 @@ describe('CallerService', () => {
           },
         ],
       });
+    });
+  });
+
+  describe('handleWebhook', () => {
+    const mockCareTaskEventFindFirstOrThrow: jest.Mock = jest.fn().mockResolvedValue({
+      id: 'event-123',
+      externalID: 'test-call-123',
+    } as unknown as CareTaskEvent);
+
+    beforeEach(() => {
+      jest
+        .spyOn(prismaService.careTaskEvent, 'findFirstOrThrow')
+        .mockImplementation(mockCareTaskEventFindFirstOrThrow);
+    });
+    it('should use provider from query param to parse webhook', async () => {
+      const mockRequest = {
+        query: { provider: 'cartesia' },
+        headers: { 'x-webhook-secret': 'test-secret' },
+        body: Buffer.from(
+          JSON.stringify({
+            type: 'call_completed',
+            call_id: 'test-call-123',
+            body: [],
+          }),
+        ),
+      } as unknown as Request;
+
+      process.env.CARTESIA_WEBHOOK_SECRET = 'test-secret';
+
+      await service.handleWebhook(mockRequest);
+
+      // Verify the event was looked up
+      expect(mockCareTaskEventFindFirstOrThrow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { externalID: 'test-call-123' },
+        }),
+      );
+    });
+
+    it('should throw error for unknown provider in query param', async () => {
+      const mockRequest = {
+        query: { provider: 'unknown-provider' },
+        headers: {},
+        body: Buffer.from('{}'),
+      } as unknown as Request;
+
+      await expect(service.handleWebhook(mockRequest)).rejects.toThrow(
+        'Unknown provider: unknown-provider',
+      );
     });
   });
 });
