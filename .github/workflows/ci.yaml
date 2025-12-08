@@ -48,9 +48,28 @@ jobs:
   check-generated-files:
     name: Check Generated Files
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: shadow_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     defaults:
       run:
         working-directory: www
+
+    env:
+      DATABASE_URL: "mysql://root:testpassword@localhost:3306/test_db"
+      SHADOW_DATABASE_URL: "mysql://root:testpassword@localhost:3306/shadow_db"
 
     steps:
       - name: Checkout
@@ -70,9 +89,27 @@ jobs:
         run: npx prisma generate
 
       - name: Validate Prisma schema (without database)
+        run: npx prisma validate
+
+      - name: Check for missing migrations
         run: |
-          # Set dummy env vars for validation
-          npx prisma validate
+          DIFF_OUTPUT=$(npx prisma migrate diff \
+            --from-migrations ./prisma/migrations \
+            --to-schema-datamodel ./prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_DATABASE_URL" \
+            --script 2>&1) || true
+
+          echo "Prisma diff output:"
+          echo "$DIFF_OUTPUT"
+
+          if echo "$DIFF_OUTPUT" | grep -qE "^(CREATE|ALTER|DROP|INSERT|UPDATE|DELETE)"; then
+            echo ""
+            echo "❌ Schema changes detected without a migration!"
+            echo "Please run 'npx prisma migrate dev --name <migration_name>' and commit the migration."
+            exit 1
+          else
+            echo "✅ All schema changes have corresponding migrations"
+          fi
 
       - name: Check for uncommitted changes
         run: |
