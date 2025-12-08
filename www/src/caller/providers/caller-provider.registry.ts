@@ -6,6 +6,7 @@ import { BlandAICallerProvider } from './bland-ai-caller.provider';
 import { CartesiaCallerProvider } from './cartesia-caller.provider';
 import { LoggerNoPHI } from '#logger/logger';
 import type { Request } from 'express';
+import { PipecatCallerProvider } from './pipecat-caller.provider';
 
 @Injectable()
 export class CallerProviderRegistry {
@@ -18,6 +19,7 @@ export class CallerProviderRegistry {
     this.providers = new Map<CallerProviderEnum, CallerProviderClass>([
       [CallerProviderEnum.BLAND_AI, new BlandAICallerProvider(this.logger)],
       [CallerProviderEnum.CARTESIA, new CartesiaCallerProvider(this.logger)],
+      [CallerProviderEnum.PIPECAT, new PipecatCallerProvider(this.logger)],
       // Not used yet: [CallerProviderEnum.ELEVEN_LABS, new ElevenLabsCallerProvider(this.logger)],
     ]);
   }
@@ -40,6 +42,8 @@ export class CallerProviderRegistry {
       //     return this.providers.get(CallerProviderEnum.ELEVEN_LABS)!;
       case 'cartesia':
         return this.providers.get(CallerProviderEnum.CARTESIA)!;
+      case 'pipecat':
+        return this.providers.get(CallerProviderEnum.PIPECAT)!;
       default:
         throw new Error(
           `Unknown provider: ${providerParam}. Did you specify a provider query parameter?`,
