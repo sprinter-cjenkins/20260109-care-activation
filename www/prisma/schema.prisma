@@ -46,6 +46,7 @@ enum CallerProvider {
   BLAND_AI
   CARTESIA
   ELEVEN_LABS
+  PIPECAT
 }
 
 // FHIR: https://www.hl7.org/fhir/datatypes-definitions.html#ContactPoint.system

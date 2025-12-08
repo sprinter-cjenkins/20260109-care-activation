@@ -1,0 +1,7 @@
+agent_name = "twilio-chatbot-dial-out"
+image = "jonesnxt/twilio-chatbot-dial-out:0.1"
+image_credentials = "my-image-pull-secret"
+secret_set = "quickstart-secrets"
+
+[scaling]
+	min_agents = 0
