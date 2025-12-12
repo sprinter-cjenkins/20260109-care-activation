@@ -14,15 +14,15 @@ runs:
     # Update to a newer version of npm to get around some issues with npm hanging.
     - run: npm install --global npm@10
       shell: bash
-      working-directory: ./www
+      working-directory: ./server
 
     # This is necessary for yarn install to work
     - uses: actions/cache@v4
       with:
-        path: www/node_modules
-        key: ${{ runner.os }}-www-node-modules-${{ hashFiles('www/yarn.lock', 'www/patches/*') }}
+        path: server/node_modules
+        key: ${{ runner.os }}-server-node-modules-${{ hashFiles('server/yarn.lock', 'server/patches/*') }}
 
     - uses: actions/cache@v4
       with:
-        path: www/shared/node_modules
-        key: ${{ runner.os }}-shared-node-modules-${{ hashFiles('www/shared/yarn.lock') }}
+        path: server/shared/node_modules
+        key: ${{ runner.os }}-shared-node-modules-${{ hashFiles('server/shared/yarn.lock') }}
