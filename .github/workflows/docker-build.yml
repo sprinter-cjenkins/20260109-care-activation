@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./www
+        working-directory: ./server
 
     steps:
       - name: Checkout
