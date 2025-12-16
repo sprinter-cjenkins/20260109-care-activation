@@ -61,7 +61,7 @@ export default class Question {
     // If we have a moveOn path, change it to not conflict with the follow up path
     if (this.params.replyPaths.moveOn) {
       this.params.replyPaths.moveOn.description = `
-        Choose this pathway if the user says no, they don't need any follow up questions or if they don't know, aren't sure, or don't want to answer the question.
+        The user says no to the question being asked. Also if they don't know, aren't sure, or don't want to answer the question.
         Examples: "I don't know", "No", "I have not", "I'm not sure", "I don't want to tell you that"
       `;
     }

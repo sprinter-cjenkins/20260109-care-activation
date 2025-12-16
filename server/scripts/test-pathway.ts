@@ -2,6 +2,8 @@ import { PathwayModule } from '#src/pathway/pathway.module';
 import { PathwayService } from '#src/pathway/pathway.service';
 import { NestFactory } from '@nestjs/core';
 import { CareTaskType } from '@prisma/client';
+import { config } from 'dotenv';
+config();
 
 async function testPathway() {
   // Create application context without starting the HTTP server

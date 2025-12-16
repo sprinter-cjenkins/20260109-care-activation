@@ -5,6 +5,7 @@ export type SimpleRetryQuestionParams = {
   prompt: string;
   allowIDontKnow: boolean;
   yesOrNoQuestion?: boolean;
+  moveOnCondition?: string;
   tests?: {
     moveOn?: string[];
     followUp?: string[];
@@ -18,6 +19,7 @@ export default class SimpleRetryQuestion extends Question {
     title,
     prompt,
     allowIDontKnow,
+    moveOnCondition,
     yesOrNoQuestion = false,
     tests,
   }: SimpleRetryQuestionParams) {
@@ -34,12 +36,14 @@ export default class SimpleRetryQuestion extends Question {
       replyPaths: {
         moveOn: {
           label: 'Success',
-          description: `
-            User answered the question.
+          description:
+            moveOnCondition ??
+            `
+            User answered the question. The answer could be anything that is not a follow up question, obviously off topic, or being confused about the question being asked.
             ${
               yesOrNoQuestion
                 ? `
-              Yes or no, or any other affirmative or negative response is an answer.
+              Yes or no, or any other affirmative or negative response is also an acceptable answer.
               Examples: "Yeah", "Yes", "Nope", "Nah"
             `
                 : ''
@@ -50,7 +54,7 @@ export default class SimpleRetryQuestion extends Question {
         retry: {
           label: 'User did not answer the question',
           description:
-            "User asked a question, was confused, or otherwise didn't answer the question.",
+            "The user did not answer the question. User asked their own question, was confused, or otherwise didn't answer the question.",
           retries: 4,
         },
       },

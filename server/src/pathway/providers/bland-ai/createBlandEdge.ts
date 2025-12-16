@@ -25,11 +25,12 @@ export default function createBlandEdge({
   label?: string;
   description?: string;
 }): BlandEdge {
+  const prompt = description == null || description.length === 0 ? label : description;
   return {
     id: v4(),
     data: {
-      label: trimPromptWhitespace(label ?? ''),
-      description: trimPromptWhitespace(description ?? ''),
+      label: trimPromptWhitespace(prompt ?? ''),
+      description: '',
       isHighlighted: false,
     },
     type: 'custom',
