@@ -39,6 +39,7 @@ const confirmName = new SimpleRetryQuestion({
   tests: {
     moveOn: [
       'Yes, this is her.',
+      'Yeah. This is she.',
       'Speaking',
       'Confirmed.',
       'This is Jahan',
@@ -75,15 +76,16 @@ confirmWrongName.addGiveUp({
 
 confirmName.addFollowUp({
   label: 'Potentially the wrong person',
-  description:
-    'Follow this pathway if the patient has said their name is something completely different than {{patient_full_name}}. Do not take this pathway if the name is close or could easily be misheard as {{patient_full_name}}',
+  description: `Follow this pathway if the patient has said no, they aren't "{{patient_full_name}}", or they say their name and it is something completely different than {{patient_full_name}}.`,
   followUpQuestions: [confirmWrongName],
 });
 
 // rewrite this because followup needs to be reconfigured
 nullThrows(confirmName.params.replyPaths.moveOn).description = `
-  Take this pathway if the patient has agreed that they are {{patient_full_name}} or otherwise confirmed in any way. The name doesn't have to be an exact match for {{patient_full_name}}. As long as the name they said has similar letters, is close to, or sounds like {{patient_full_name}}. Also its fine if the name they said is close to only part of {{patient_full_name}}. The patient might only be saying their first name, and we might be hearing it wrong, so be very lenient.
-  Examples: "Speaking." "This is her" "This is [name]"
+  The patient has agreed that they are {{patient_full_name}} or otherwise confirmed in any way.
+  Remember that this is the written transcript of a phone call, so names can frequently be incorrectly transcribed.
+  If the patient says they are the correct person, even if the name is different, that is fine.
+  Examples: "Speaking." "This is her" "Yes, this is [name]"
 `;
 
 const confirmDOB = new SimpleRetryQuestion({
@@ -95,12 +97,18 @@ const confirmDOB = new SimpleRetryQuestion({
     - Never give the date of birth; the patient must say it.
     - If it makes sense to ask if the date they said is correct, assume it is. If the date they have said doesn't match closely to {{patient_dob}}, say sorry and ask them to verify their date of birth again.
   `,
+  moveOnCondition: `
+    The date the patient just said converts to the same month day and year as "{{patient_dob}}".
+    The entire date must match and they must say day, month, and year. Just the month and day is not enough.
+    Remember that this is a transcript of a spoken conversation, so if the response sounds similar to the date but is not exactly the same that is good enough.
+  `,
   tests: {
     moveOn: [
       'Zero one zero one nineteen ninety nine.',
-      'Jan one ninety nine.',
-      'January first, ninety nine.',
-      'one one nineteen ninety nine.',
+      'One one ninety nine.',
+      'January first ninety nine.',
+      'January one nineteen ninety nine.',
+      'Jan one nineteen ninety nine.',
       'The first of January nineteen ninety nine',
     ],
     retry: [
@@ -113,14 +121,9 @@ const confirmDOB = new SimpleRetryQuestion({
 });
 
 // only move forward if we match the date of birth correctly
-nullThrows(confirmDOB.params.replyPaths.moveOn).description =
-  `Choose this pathway if the date the patient said matches the day, month, and year oh "{{patient_dob}}".
-  Do not pick this pathway if the year is completely different or if the day or month is completely different.
-`;
-
 nullThrows(confirmDOB.params.replyPaths.retry).description = `
-  Choose this pathway if the day, month, or year the patient said is different to the date "{{patient_dob}}".
-  If the date they said doesn't sound similar to "{{patient_dob}}.
+  The date the patient just said is a different date than "{{patient_dob}}".
+  Also if the date the patient said doesn't have a day, month, and year.
   Also if the user asked a question, was confused, or otherwise didn't answer the question.
 `;
 
@@ -141,7 +144,7 @@ const hasHadPreviousDEXAScan = new SimpleRetryQuestion({
 hasHadPreviousDEXAScan.addFollowUp({
   label: 'User has had previous DEXA scan',
   description: `
-    If the user says they have had a DEXA scan before.
+    If the user says yes, they have had a DEXA scan before.
     Pick this option if it makes sense to ask follow-ups such as (when was it, where was it, etc).
   `,
   followUpQuestions: createSimpleRetryQuestions({
@@ -173,11 +176,13 @@ const height = new SimpleRetryQuestion({
   allowIDontKnow: false,
   prompt: `
     "Now, a couple of quick health details. What is your current height?"
-    For this question vague answers are okay.
     If the patient asks about limits, the usual limit is maximum six feet, but these numbers vary between centers so we have to verify and get back to them.
-    Within a foot answers are fine for height, (for example: "five foot something", "five feet", "around five feet").
-    Meters and centimeters are also fine, convert them to feet when thinking about them.
   `,
+  moveOnCondition: `
+  The patient has given us their height in a way that makes sense.
+  Within a foot answers are fine, (for example: "five foot something", "five feet", "around five feet").
+  Meters and centimeters are also fine, convert them to feet when thinking about them.
+`,
   tests: {
     moveOn: ['Five foot something', 'Five ten', 'Around five feet'],
     retry: [
@@ -194,12 +199,15 @@ const weight = new SimpleRetryQuestion({
   allowIDontKnow: false,
   prompt: `
     "And what is your current weight?"
-    For this question vague answers are okay.
     If the patient asks about limits, the usual limit is 350 pounds, but these numbers vary between centers so we have to verify and get back to them.
-    Within one hundred pounds is fine for weight, like one hundred something pounds, Kilos are also fine, convert them to pounds when thinking about them.
   `,
+  moveOnCondition: `
+  The patient has given us their weight in a way that makes sense.
+  Within one hundred pound answers are fine, (for example: "two hundred something", "like two fifty", "one sixty two").
+  Kilograms are also fine, convert them to feet when thinking about them.
+`,
   tests: {
-    moveOn: ['One fifty', 'Fourty kilos', 'One hundred something'],
+    moveOn: ['One fifty', 'Fourty kilos', 'One hundred something', 'a hundred and forty seven.'],
     retry: [
       "I don't know",
       "I don't want to tell you that",
@@ -238,7 +246,8 @@ const metalInBody = new SimpleRetryQuestion({
 metalInBody.addFollowUp({
   label: 'User does have metal in their body',
   description: `
-    If the user says they do have metal in their body, if they answered yes.
+    If the user says they do have metal in their body, if they answered affirmatively.
+    For example: "Yes" "Yeah" "I Do"
     Pick this option if it makes sense to ask follow-ups such as (What metal is in your body?)
   `,
   followUpQuestions: [
@@ -260,6 +269,10 @@ const centerNearYou = new SimpleRetryQuestion({
     Then you will need to ask this question:
     "Is there a local imaging center you would prefer to visit for your scan?"
   `,
+  moveOnCondition: `
+  The patient has said yes, no, or they don't know.
+  Examples: "Yes" "No" "I don't know"
+  `,
   tests: {
     moveOn: ['Can you find one for me?', 'No.', "I don't know", 'Where are the centers near me?'],
     retry: ['Why are you asking me this?'],
@@ -274,8 +287,9 @@ const centerNearYou = new SimpleRetryQuestion({
 centerNearYou.addFollowUp({
   label: 'User has a center preference',
   description: `
-    If the user says they do have a prefered imaging center location.
-    Pick this option if it makes sense to ask follow-ups such as (What is the name of that imaging center?)
+    If the user says yes, that they do have a prefered imaging center location.
+    Also if they name a specific center or allude to the fact that they know a center nearby.
+    For example: "Yes" "Yeah" "I Do" "I know there's one down the street"
   `,
   followUpQuestions: [
     new SimpleRetryQuestion({
@@ -288,14 +302,15 @@ centerNearYou.addFollowUp({
 
 // add some guidance to move on questions like "Can you do it?"
 nullThrows(centerNearYou.params.replyPaths.moveOn).description += `
-  Choose this pathway if the patient asks you for an opinion on what center to pick or asks a question about centers nearby.
-  Examples: "What centers are near me?" "Can you find one for me?"
+  The patient asks you for an opinion on what center to pick or asks a question about centers nearby.
+  Examples: "Where is the nearest center?" "Can you find one for me?"
 `;
 
 const schedulingPreference = new SimpleRetryQuestion({
   title: 'Scheduling Preference',
   allowIDontKnow: true,
   prompt: `
+    If the above response was a question relevant to imaging center location, succinctly answer the question then ask:
     "Are there specific days or times that usually work best for your appointment? For example, Monday mornings?"
 
     For the days/times try to get windows like "Tuesdays" instead of single options like "tomorrow". We want the availability to apply to at least a few windows.
@@ -307,7 +322,8 @@ const schedulingPreference = new SimpleRetryQuestion({
       "I don't know",
       "I don't know my schedule can I tell you later?",
       "Monday's are perfect for me",
-      'Tuesday afternoon',
+      'Monday through Friday in the morning.',
+      'Tuesday afternoons',
       'Mornings',
     ],
     retry: [
@@ -320,11 +336,11 @@ const schedulingPreference = new SimpleRetryQuestion({
 
 // only continue when we have a window
 nullThrows(schedulingPreference.params.replyPaths.moveOn).description = `
-  Only take this pathway when we get windows like "Tuesdays" instead of single options like "tomorrow" or "next Tuesday". We want the availability to apply to at least a few windows.
+  Take this pathway when we get windows like "Tuesdays" instead of single options like "tomorrow" or "next Tuesday". We want the availability to apply to at least a few windows.
   These are great examples of answers: "Saturdays and Sundays", "Monday and Wednesday afternoon", "Monday mornings", and "Thursday evenings".
   These are insufficient answers because there aren't enough options: "Tomorrow", "How about this Saturday at 9?".
   I don't know is an acceptable answer.
-  Examples: "I don't know", "I'm not sure", "I don't want to tell you that", "I don't remember"
+  Examples: "I don't know", "I'm not sure", "I don't want to tell you that", "I don't remember", "I don't know my schedule right now"
 `;
 
 const DEXA_SCAN_QUESTION_LIST: Question[] = [

@@ -123,7 +123,7 @@ export class BlandAIPathwayProvider implements PathwayProvider {
                 pathway_id: pathwayID,
                 start_node_id: questionID,
                 // TODO vary this input data
-                requestData: {
+                request_data: {
                   patient_full_name: 'Jiahan Ericsson',
                   plan_name: 'Humana',
                   patient_dob: '01/01/1999',

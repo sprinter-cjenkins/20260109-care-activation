@@ -5,6 +5,8 @@ import { PathwayModule } from '../src/pathway/pathway.module';
 import { PathwayService } from '../src/pathway/pathway.service';
 import { CareTaskType } from '@prisma/client';
 import { getPathwayID } from '../src/pathway/pathways';
+import { config } from 'dotenv';
+config();
 
 async function pushPathway() {
   // Get careTaskType from command line arguments
