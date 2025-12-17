@@ -3,7 +3,7 @@
 import { NestFactory } from '@nestjs/core';
 import { PathwayModule } from '../src/pathway/pathway.module';
 import { PathwayService } from '../src/pathway/pathway.service';
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 import { getPathwayID } from '../src/pathway/pathways';
 import { config } from 'dotenv';
 config();

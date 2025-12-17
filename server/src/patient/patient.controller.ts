@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
 import { PatientService } from './patient.service';
 import type { PatientFullCreateInput } from './patient.service';
-import { Patient, Prisma } from '@prisma/client';
+import { Patient, Prisma } from '@ca/prisma';
 
 @Controller('patients')
 export class PatientController {

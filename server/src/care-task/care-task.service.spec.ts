@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { CareTaskService } from './care-task.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CareTaskStatus, CareTaskType } from '@prisma/client';
+import { CareTaskStatus, CareTaskType } from '@ca/prisma';
 import { mockCareTaskPayload, mockPatientPayload } from '../../test/mocks';
 
 describe('CareTaskService', () => {

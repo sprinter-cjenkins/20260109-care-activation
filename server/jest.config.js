@@ -11,6 +11,6 @@ module.exports = {
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
-  transformIgnorePatterns: ['node_modules/(?!(uuid))'],
+  transformIgnorePatterns: ['node_modules/(?!(uuid|@ca/prisma))'],
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/' }),
 };

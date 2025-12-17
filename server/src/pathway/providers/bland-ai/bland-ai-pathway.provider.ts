@@ -1,7 +1,7 @@
 import { getBlandAIConfig } from '#src/auth/bland-ai.credentials';
 import { getErrorMessage } from '#src/utils';
 import { Injectable } from '@nestjs/common';
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 import { PathwayProvider, QuestionRoutingCaseResult } from '../pathway-provider';
 import { LoggerNoPHI } from '#logger/logger';
 import { getPathway, getPathwayID, getPathwayTests } from '#src/pathway/pathways';

@@ -1,0 +1,14 @@
+{
+  "name": "@ca/prisma",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "generate": "npx prisma generate",
+    "postinstall": "npx prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.1.0",
+    "prisma": "^7.1.0"
+  }
+}

@@ -1,5 +1,5 @@
 import { PatientPayload } from '#patient/patient.service';
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 import type { Request } from 'express';
 
 export interface CallResult {

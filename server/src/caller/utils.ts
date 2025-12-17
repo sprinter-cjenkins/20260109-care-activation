@@ -1,6 +1,6 @@
 import { PatientPayload } from '#patient/patient.service';
 import { getPatientFullName } from '#patient/utils';
-import { CareTaskType, PartnerOrganization } from '@prisma/client';
+import { CareTaskType, PartnerOrganization } from '@ca/prisma';
 
 const PRODUCTION_DEXA_SCAN_CITATION_SCHEMA_ID = '43b8e88f-1f57-4a81-b171-949802c40a44';
 const DEVELOPMENT_DEXA_SCAN_CITATION_SCHEMA_ID = '0fa9fc67-97ff-4e4a-911e-42e3ba5c56ca';

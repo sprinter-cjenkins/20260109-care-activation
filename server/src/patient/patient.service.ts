@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Patient, Prisma } from '@prisma/client';
+import { Patient, Prisma } from '@ca/prisma';
 
 export const patientNameAndTelecomInclude = {
   telecom: true,
