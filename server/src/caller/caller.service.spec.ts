@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CallerService } from './caller.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CallerProvider, CareTaskEvent, CareTaskType, ContactPointSystem } from '@prisma/client';
+import { CallerProvider, CareTaskEvent, CareTaskType, ContactPointSystem } from '@ca/prisma';
 import { buildRequestData, getSummaryPrompt, getVoicemailMessage } from './utils';
 import { getPatientPhoneNumber } from '#patient/utils';
 import { mockPatientPayload, mockCareTaskPayload } from '../../test/mocks';

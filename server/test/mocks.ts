@@ -9,7 +9,7 @@ import {
   NameUse,
   PartnerOrganization,
   Prisma,
-} from '@prisma/client';
+} from '@ca/prisma';
 
 export const mockPatientCreateInput: Prisma.PatientCreateInput = {
   externalID: 'EXT123',

@@ -6,7 +6,7 @@ import {
 } from './patient.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { mockPatientCreateInput, mockPatientPayload } from '../../test/mocks';
-import { ContactPointSystem, ContactPointUse } from '@prisma/client';
+import { ContactPointSystem, ContactPointUse } from '@ca/prisma';
 
 describe('PatientService', () => {
   let service: PatientService;

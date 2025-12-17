@@ -10,7 +10,7 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
-  transformIgnorePatterns: ['node_modules/(?!(uuid))'],
+  transformIgnorePatterns: ['node_modules/(?!(uuid|@ca/prisma))'],
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: '<rootDir>/../', // since jest-e2e.config.js lives in /test
   }),

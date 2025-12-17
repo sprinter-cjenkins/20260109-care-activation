@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CallerProvider as CallerProviderEnum } from '@prisma/client';
+import { CallerProvider as CallerProviderEnum } from '@ca/prisma';
 import { CallerProvider as CallerProviderClass } from './caller-provider';
 import { BlandAICallerProvider } from './bland-ai-caller.provider';
 // import { ElevenLabsCallerProvider } from './eleven-labs-caller.provider';

@@ -1,4 +1,4 @@
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 
 export type QuestionRoutingCaseResult = {
   question: string;

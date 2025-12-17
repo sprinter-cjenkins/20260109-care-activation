@@ -1,5 +1,5 @@
 import { Controller, Post, Param } from '@nestjs/common';
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 import { APIPushResult, PathwayService } from './pathway.service';
 
 @Controller('pathway')

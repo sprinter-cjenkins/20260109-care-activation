@@ -1,7 +1,7 @@
-import { ContactPoint, ContactPointSystem, HumanName, NameUse } from '@prisma/client';
+import { ContactPoint, ContactPointSystem, HumanName, NameUse } from '@ca/prisma';
 import { PatientPayload } from './patient.service';
 
-export function getPatientHumanName(patient: PatientPayload) {
+export function getPatientHumanName(patient: PatientPayload): HumanName {
   // return just the usual name for now
   let nameToUse = patient.name.find((name: HumanName) => name.use === NameUse.USUAL);
 

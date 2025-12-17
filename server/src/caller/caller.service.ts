@@ -4,7 +4,7 @@ import {
   CareTaskEventStatus,
   CareTaskEventType,
   ContactPointSystem,
-} from '@prisma/client';
+} from '@ca/prisma';
 import { PrismaService } from '#prisma/prisma.service';
 import { CallResult } from './providers/caller-provider';
 import type { Request } from 'express';

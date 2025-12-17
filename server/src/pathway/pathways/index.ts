@@ -1,4 +1,4 @@
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 import {
   DEXA_SCAN_PATHWAY,
   DEXA_SCAN_PATHWAY_TESTS,

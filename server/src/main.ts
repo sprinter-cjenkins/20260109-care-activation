@@ -1,4 +1,7 @@
 import tracer from 'dd-trace';
+import { config } from 'dotenv';
+config();
+
 // Initialize tracer before any other imports in case we want to trace them
 tracer.init({
   service: process.env.SERVICE_NAME || 'care-activation',

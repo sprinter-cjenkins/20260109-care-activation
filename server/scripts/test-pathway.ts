@@ -1,7 +1,7 @@
 import { PathwayModule } from '#src/pathway/pathway.module';
 import { PathwayService } from '#src/pathway/pathway.service';
 import { NestFactory } from '@nestjs/core';
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 import { config } from 'dotenv';
 config();
 

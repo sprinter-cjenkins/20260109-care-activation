@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '#prisma/prisma.service';
-import { CareTask, CareTaskStatus, Prisma } from '@prisma/client';
+import { CareTask, CareTaskStatus, Prisma } from '@ca/prisma';
 
 export const careTaskPatientAndEventsInclude = {
   patient: true,

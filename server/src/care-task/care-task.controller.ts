@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query } from '@nestjs/common';
 import { CareTaskService } from './care-task.service';
-import { CareTask, CareTaskStatus, Prisma } from '@prisma/client';
+import { CareTask, CareTaskStatus, Prisma } from '@ca/prisma';
 
 @Controller('care-tasks')
 export class CareTaskController {

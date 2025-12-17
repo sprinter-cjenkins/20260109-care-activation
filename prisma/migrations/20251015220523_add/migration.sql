@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `EventResult` ADD COLUMN `metadata` JSON NOT NULL,
+    MODIFY `type` ENUM('QUESTION', 'OTHER', 'VERIFICATION') NOT NULL;

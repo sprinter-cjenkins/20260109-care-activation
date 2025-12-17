@@ -1,6 +1,6 @@
 import { LoggerNoPHI } from '#logger/logger';
 import { Injectable } from '@nestjs/common';
-import { CareTaskType } from '@prisma/client';
+import { CareTaskType } from '@ca/prisma';
 import { PathwayProvider, QuestionRoutingCaseResult } from './providers/pathway-provider';
 import { BlandAIPathwayProvider } from './providers/bland-ai/bland-ai-pathway.provider';
 
