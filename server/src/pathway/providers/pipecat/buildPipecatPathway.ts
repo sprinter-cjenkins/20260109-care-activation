@@ -10,7 +10,7 @@ export type PipecatPathway = {
     node: PipecatNode;
     edges: {
       target_id: string;
-      prompt: string;
+      condition: string;
     }[];
   }[];
 };
@@ -26,7 +26,7 @@ export default function buildPipecatPathway(pathway: Pathway): PipecatPathway {
       edges:
         base.edges?.map((edge) => ({
           target_id: edge.target.id,
-          prompt: edge.description ?? edge.label ?? 'Continue',
+          condition: edge.condition ?? 'Continue',
         })) ?? [],
     })),
   };

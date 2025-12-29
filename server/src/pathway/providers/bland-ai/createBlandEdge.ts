@@ -17,19 +17,16 @@ export type BlandEdge = {
 export default function createBlandEdge({
   source,
   target,
-  label,
-  description,
+  condition,
 }: {
   source: BlandNode;
   target: BlandNode;
-  label?: string;
-  description?: string;
+  condition?: string;
 }): BlandEdge {
-  const prompt = description == null || description.length === 0 ? label : description;
   return {
     id: v4(),
     data: {
-      label: trimPromptWhitespace(prompt ?? ''),
+      label: trimPromptWhitespace(condition ?? 'Continue'),
       description: '',
       isHighlighted: false,
     },

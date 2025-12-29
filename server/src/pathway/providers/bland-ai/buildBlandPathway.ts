@@ -38,8 +38,7 @@ export default function buildBlandPathway(pathway: Pathway): BlandPathway {
         createBlandEdge({
           source: sourceBlandNode,
           target: findMatchingBlandNode(blandNodes, edge.target),
-          label: edge.label,
-          description: edge.description,
+          condition: edge.condition,
         }),
       ) ?? [],
     );

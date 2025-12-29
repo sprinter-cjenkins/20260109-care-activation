@@ -4,8 +4,7 @@ export type Segment = {
   node: Node;
   edges?: {
     target: Node;
-    label?: string;
-    description?: string;
+    condition: string;
   }[];
 };
 

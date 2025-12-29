@@ -6,35 +6,31 @@ import { PathwayTest } from '../pathways';
 
 export type ReplyPaths = {
   moveOn?: {
-    label: string;
-    description: string;
+    condition: string;
   };
   retry?: {
-    label: string;
-    description: string;
-    retries: number;
+    condition: string;
   };
   followUp?: {
-    label: string;
-    description: string;
+    condition: string;
     followUpQuestions: Question[];
   };
   giveUp?: {
-    label: string;
-    description: string;
-    giveUpPrompt: string;
+    condition: string;
+    nodePrompt: string;
   };
 };
 
 export type QuestionParams = {
   title: string;
   prompt: string;
+  condition?: string;
   replyPaths: ReplyPaths;
   tests?: {
     moveOn?: string[];
-    retry?: string[];
     followUp?: string[];
     giveUp?: string[];
+    retry?: string[];
   };
 };
 
@@ -47,51 +43,45 @@ export default class Question {
     this.id = v4();
     this.params = params;
 
+    const condition = this.params.condition?.trim();
+
     this.firstNode = {
       id: this.id,
       name: this.params.title,
       prompt: this.params.prompt,
+      condition: this.params.condition != null ? condition : undefined,
       type: 'Default',
     };
   }
 
-  addFollowUp(followUp: { followUpQuestions: Question[]; label: string; description: string }) {
+  addFollowUp(followUp: { followUpQuestions: Question[]; condition: string }) {
     this.params.replyPaths.followUp = followUp;
 
     // If we have a moveOn path, change it to not conflict with the follow up path
     if (this.params.replyPaths.moveOn) {
-      this.params.replyPaths.moveOn.description = `
+      this.params.replyPaths.moveOn.condition = `
         The user says no to the question being asked. Also if they don't know, aren't sure, or don't want to answer the question.
         Examples: "I don't know", "No", "I have not", "I'm not sure", "I don't want to tell you that"
       `;
     }
   }
 
-  addGiveUp(giveUp: { label: string; description: string; giveUpPrompt: string }) {
+  addGiveUp(giveUp: { condition: string; nodePrompt: string }) {
     this.params.replyPaths.giveUp = giveUp;
   }
 
   toSegments(moveOnNode: Node): Segment[] {
-    const { giveUp, followUp, retry } = this.params.replyPaths;
+    const { giveUp, followUp } = this.params.replyPaths;
 
     const giveUpNode: Node = {
       id: v4(),
       name: `${this.params.title} give up`,
-      prompt: giveUp?.giveUpPrompt,
+      prompt: giveUp?.nodePrompt,
       type: 'End Call',
     };
 
     const followUpSegments =
       followUp != null ? questionListToSegments(followUp.followUpQuestions, moveOnNode) : [];
-
-    const retrySegments =
-      retry != null
-        ? this.createRetrySegments({
-            moveOnNode,
-            giveUpNode,
-            followUpNode: followUpSegments[0]?.node,
-          })
-        : [];
 
     return [
       {
@@ -100,10 +90,8 @@ export default class Question {
           moveOnNode,
           giveUpNode,
           followUpNode: followUpSegments[0]?.node,
-          retryNode: retrySegments[0]?.node,
         }),
       },
-      ...retrySegments,
       ...followUpSegments,
       ...(giveUp != null
         ? [
@@ -117,12 +105,10 @@ export default class Question {
 
   createNodeEdges({
     moveOnNode,
-    retryNode,
     followUpNode,
     giveUpNode,
   }: {
     moveOnNode?: Node;
-    retryNode?: Node;
     followUpNode?: Node;
     giveUpNode?: Node;
   }) {
@@ -133,8 +119,7 @@ export default class Question {
         ? [
             {
               target: giveUpNode,
-              description: giveUp.description,
-              label: giveUp.label,
+              condition: giveUp.condition,
             },
           ]
         : []),
@@ -142,17 +127,7 @@ export default class Question {
         ? [
             {
               target: moveOnNode,
-              label: moveOn.label,
-              description: moveOn.description,
-            },
-          ]
-        : []),
-      ...(retry != null && retryNode != null
-        ? [
-            {
-              target: retryNode,
-              label: retry.label,
-              description: retry.description,
+              condition: moveOn.condition,
             },
           ]
         : []),
@@ -160,66 +135,19 @@ export default class Question {
         ? [
             {
               target: followUpNode,
-              label: followUp.label,
-              description: followUp.description,
+              condition: followUp.condition,
+            },
+          ]
+        : []),
+      ...(retry != null
+        ? [
+            {
+              target: this.firstNode,
+              condition: retry.condition,
             },
           ]
         : []),
     ];
-  }
-
-  createRetrySegments({
-    followUpNode,
-    giveUpNode,
-    moveOnNode,
-  }: {
-    followUpNode?: Node;
-    giveUpNode?: Node;
-    moveOnNode?: Node;
-  }): Segment[] {
-    const retryNodes: Node[] = new Array(this.params.replyPaths.retry?.retries ?? 0)
-      .fill(null)
-      .map((_, i) => ({
-        id: v4(),
-        name: `${this.params.title} retry ${i}`,
-        prompt: `
-        The patient either answered ambiguously or asked a follow up question.
-        If the question is relevent to the question listed below, answer then ask again.
-        ${this.params.prompt}
-      `,
-        type: 'Default',
-      }));
-
-    const tooConfusedNode: Node = {
-      id: v4(),
-      name: "We're too confused, give up",
-      type: 'Default',
-      prompt: `
-          # Background
-          We tried to find the answer we were looking for but didn't succeed. At this point we want to give up for now and let someone else handle this call later once we figure out what went wrong.
-  
-          Apologize for not being able to finish the call and tell the patient that someone else will reach out to get the rest of the booking information.
-  
-          # Script
-          Sorry, I'm having trouble figuring out how to proceed, someone else on the Sprinter Health team will reach out to you shortly to finish booking this appointment. Have a nice day!
-        `,
-    };
-
-    const resultSegments: Segment[] = [];
-    for (let i = 0; i < retryNodes.length; i++) {
-      let nextRetry = retryNodes[i + 1];
-      if (nextRetry == null) {
-        nextRetry = tooConfusedNode;
-      }
-      resultSegments.push({
-        node: retryNodes[i],
-        edges: this.createNodeEdges({ moveOnNode, followUpNode, giveUpNode, retryNode: nextRetry }),
-      });
-    }
-
-    resultSegments.push({ node: tooConfusedNode });
-
-    return resultSegments;
   }
 
   toPathwayTests(moveOnNode: Node): PathwayTest[] {
@@ -231,7 +159,7 @@ export default class Question {
     const moveOnNodeName = moveOnNode.name ?? '';
     const followUpNodeName =
       this.params.replyPaths.followUp?.followUpQuestions[0].params.title ?? '';
-    const retryNodeName = `${nodeName} retry 0`;
+    const retryNodeName = nodeName;
 
     return [
       {
