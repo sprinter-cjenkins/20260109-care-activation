@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult, CallSummary } from './caller-provider';
 import type { Request } from 'express';
 import { getPatientPhoneNumber } from '#patient/utils';
-import { getErrorMessage } from '#src/utils';
+import { getErrorMessage } from '#src/util/getErrorMessage';
 
 const DEXA_AGENT_ID = 'agent_FRvL6X7Df537CNqarejeiE';
 const SUPPORTED_WEBHOOK_TYPES = ['call_completed', 'call_failed', 'call_started'];

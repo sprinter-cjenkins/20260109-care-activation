@@ -1,10 +1,12 @@
 import { getBlandAIConfig } from '#src/auth/bland-ai.credentials';
-import { getErrorMessage } from '#src/utils';
+import { getErrorMessage } from '#src/util/getErrorMessage';
 import { Injectable } from '@nestjs/common';
 import { CareTaskType } from '@ca/prisma';
 import { PathwayProvider, QuestionRoutingCaseResult } from '../pathway-provider';
 import { LoggerNoPHI } from '#logger/logger';
-import { getPathway, getPathwayID, getPathwayTests } from '#src/pathway/pathways';
+import buildBlandPathway from './buildBlandPathway';
+import { PATHWAY_FOR_CARE_TASK_TYPE, PATHWAY_TEST_FOR_CARE_TASK_TYPE } from '#src/pathway/pathways';
+import getBlandPathwayID from './getBlandPathwayID';
 
 @Injectable()
 export class BlandAIPathwayProvider implements PathwayProvider {
@@ -28,13 +30,21 @@ export class BlandAIPathwayProvider implements PathwayProvider {
     this.blandAPIURL = blandAPIURL;
   }
 
+  getPathwayTests(taskType: CareTaskType) {
+    return PATHWAY_TEST_FOR_CARE_TASK_TYPE[taskType];
+  }
+
+  getPathway(taskType: CareTaskType) {
+    return buildBlandPathway(PATHWAY_FOR_CARE_TASK_TYPE[taskType]);
+  }
+
   // This overwrites the existing pathway data in bland, proceed with caution when on production
   async updatePathway(careTaskType: CareTaskType) {
     if (this.blandAPIKey == null) {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
-    const pathwayID = getPathwayID(careTaskType);
+    const pathwayID = getBlandPathwayID(careTaskType);
 
     if (pathwayID == null) {
       throw new Error('Pathway ID not found');
@@ -47,7 +57,7 @@ export class BlandAIPathwayProvider implements PathwayProvider {
           'Content-Type': 'application/json',
           authorization: this.blandAPIKey,
         },
-        body: JSON.stringify(getPathway(careTaskType)),
+        body: JSON.stringify(this.getPathway(careTaskType)),
       });
 
       if (!response.ok) {
@@ -87,14 +97,14 @@ export class BlandAIPathwayProvider implements PathwayProvider {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
-    const pathwayID = getPathwayID(careTaskType);
+    const pathwayID = getBlandPathwayID(careTaskType);
     if (pathwayID == null) {
       throw new Error('Pathway ID not found');
     }
 
     const nodes = await this.getPathwayNodeIDsByName(careTaskType);
 
-    const tests = getPathwayTests(careTaskType);
+    const tests = this.getPathwayTests(careTaskType);
     if (tests == null) {
       throw new Error('Could not found any tests for ' + careTaskType);
     }
@@ -210,7 +220,7 @@ export class BlandAIPathwayProvider implements PathwayProvider {
       throw new Error('BLAND_AI_API_KEY environment variable not set');
     }
 
-    const pathwayID = getPathwayID(careTaskType);
+    const pathwayID = getBlandPathwayID(careTaskType);
 
     if (pathwayID == null) {
       throw new Error('Pathway ID not found');

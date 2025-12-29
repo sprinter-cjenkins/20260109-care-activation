@@ -10,4 +10,5 @@ export type QuestionRoutingCaseResult = {
 export interface PathwayProvider {
   updatePathway: (careTaskType: CareTaskType) => Promise<{ success: boolean }>;
   testQuestionRouting: (careTaskType: CareTaskType) => Promise<QuestionRoutingCaseResult[]>;
+  getPathway: (careTaskType: CareTaskType) => unknown;
 }

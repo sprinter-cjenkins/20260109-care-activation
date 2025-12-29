@@ -25,7 +25,8 @@
     "docker:compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
     "mfa": "zsh ../scripts/aws-mfa.sh",
     "push-pathway": "ts-node -r tsconfig-paths/register scripts/push-pathway.ts",
-    "test-pathway": "ts-node -r tsconfig-paths/register scripts/test-pathway.ts"
+    "test-pathway": "ts-node -r tsconfig-paths/register scripts/test-pathway.ts",
+    "push-pipecat": "cd ../pipecat && yes | pipecat cloud docker build-push && yes | yes | pipecat cloud deploy"
   },
   "dependencies": {
     "@ca/prisma": "file:../prisma",

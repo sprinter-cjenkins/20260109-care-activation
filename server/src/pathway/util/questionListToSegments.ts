@@ -1,10 +1,10 @@
 import { DefaultEndNode } from './Node';
-import { Pathway } from './Pathway';
+import { Segment } from './Pathway';
 import { Node } from './Node';
 import Question from './Question';
 
-export default function questionListToPathway(questions: Question[], moveOnNode: Node): Pathway {
-  let pathway: Pathway = [];
+export default function questionListToSegments(questions: Question[], moveOnNode: Node): Segment[] {
+  let nodes: Segment[] = [];
   for (let i = 0; i < questions.length; i++) {
     let nextNode = questions[i + 1]?.firstNode;
 
@@ -13,10 +13,10 @@ export default function questionListToPathway(questions: Question[], moveOnNode:
       nextNode = moveOnNode;
     }
 
-    pathway = pathway.concat(questions[i].toPathway(nextNode));
+    nodes = nodes.concat(questions[i].toSegments(nextNode));
   }
 
-  pathway.push({ node: DefaultEndNode });
+  nodes.push({ node: DefaultEndNode });
 
-  return pathway;
+  return nodes;
 }

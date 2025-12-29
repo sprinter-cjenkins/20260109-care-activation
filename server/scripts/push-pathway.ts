@@ -4,7 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import { PathwayModule } from '../src/pathway/pathway.module';
 import { PathwayService } from '../src/pathway/pathway.service';
 import { CareTaskType } from '@ca/prisma';
-import { getPathwayID } from '../src/pathway/pathways';
+import getBlandPathwayID from '#src/pathway/providers/bland-ai/getBlandPathwayID';
+
 import { config } from 'dotenv';
 config();
 
@@ -41,7 +42,7 @@ async function pushPathway() {
     // Loop through all care task types
     for (const careTaskType of careTaskTypes) {
       // Check if this care task type has a pathway ID
-      const pathwayID = getPathwayID(careTaskType);
+      const pathwayID = getBlandPathwayID(careTaskType);
 
       if (!pathwayID) {
         console.log(`⊘ Skipping ${careTaskType} (no pathway ID configured)`);

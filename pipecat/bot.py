@@ -14,10 +14,9 @@ from dotenv import load_dotenv
 from loguru import logger
 from pydantic import BaseModel
 
-from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
-from pipecat.frames.frames import LLMRunFrame, TTSSpeakFrame
+from pipecat.frames.frames import LLMRunFrame
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -26,15 +25,32 @@ from pipecat.processors.aggregators.llm_response_universal import LLMContextAggr
 from pipecat.runner.types import RunnerArguments
 from pipecat.services.deepgram.tts import DeepgramTTSService
 from pipecat.services.deepgram.flux.stt import DeepgramFluxSTTService
-from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
-from pipecat.audio.mixers.soundfile_mixer import MixerEnableFrame, SoundfileMixer
 from pipecat.observers.loggers.user_bot_latency_log_observer import UserBotLatencyLogObserver
 from pipecat.processors.frameworks.rtvi import RTVIProcessor
 from pipecat.services.google.llm import GoogleLLMService
 
 
 load_dotenv(override=True)
+
+class Edge(BaseModel):
+    target_id: str
+    prompt: str
+
+class Node(BaseModel):
+    id: str
+    name: Optional[str] = None
+    prompt: Optional[str] = None
+    text: Optional[str] = None
+
+class Segment(BaseModel):
+    node: Node
+    edges: list[Edge]
+
+class Pathway(BaseModel):
+    voicemail_message: str
+    global_prompt: str
+    segments: list[Segment]
 
 class DialoutSettings(BaseModel):
     """Settings for outbound call.
@@ -44,6 +60,7 @@ class DialoutSettings(BaseModel):
     """
 
     sip_uri: str
+    pathway: Pathway
     # Include any custom data here needed for the call
 
 
@@ -82,6 +99,7 @@ class DialoutManager:
     ):
         self._transport = transport
         self._sip_uri = dialout_settings.sip_uri
+        self._pathway = dialout_settings.pathway
         self._max_retries = max_retries
         self._attempt_count = 0
         self._is_successful = False
@@ -154,7 +172,7 @@ async def run_bot(
     messages = [
         {
             "role": "system",
-            "content": "You are Sprinty, a AI Care Navigator for Sprinter Health. Your output will be spoken aloud, so avoid special characters that can't easily be spoken, such as emojis or bullet points. Keep your responses short and to the point. Only one or two sentences at most.",
+            "content": dialout_settings.pathway.global_prompt,
         },
     ]
 
@@ -219,12 +237,7 @@ async def run_bot(
     @transport.event_handler("on_client_ready")
     async def on_client_ready(rtvi):
         logger.info(f"Client Ready")
-        await asyncio.sleep(1)
         await rtvi.set_bot_ready()
-
-        messages.append({"role": "system", "content": "Introduce yourself and ask if the person your speaking with is 'Kelsey'."})
-        await task.queue_frames([LLMRunFrame()])
-
 
     runner = PipelineRunner(handle_sigint=handle_sigint)
 

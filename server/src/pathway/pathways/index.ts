@@ -1,47 +1,16 @@
 import { CareTaskType } from '@ca/prisma';
-import {
-  DEXA_SCAN_PATHWAY,
-  DEXA_SCAN_PATHWAY_TESTS,
-  globalPrompt,
-  voicemailMessage,
-} from './DEXA_SCAN';
-import buildBlandPathway from '../providers/bland-ai/buildBlandPathway';
+import { DEXA_SCAN_PATHWAY, DEXA_SCAN_PATHWAY_TESTS } from './DEXA_SCAN';
+import { Pathway } from '../util/Pathway';
 
-const PRODUCTION_DEXA_PATHWAY_ID = 'b529e181-4184-47fd-b2a8-e4bab2dcdeb9';
-const DEVELOPMENT_DEXA_PATHWAY_ID = '01a835e9-9ede-4919-a33f-43673fc95493';
+export const PATHWAY_FOR_CARE_TASK_TYPE: Record<CareTaskType, Pathway> = {
+  [CareTaskType.DEXA_SCAN]: DEXA_SCAN_PATHWAY,
+  [CareTaskType.MAMMOGRAM]: { voicemailMessage: '', globalPrompt: '', segments: [] },
+};
 
-export function getPathwayTests(taskType: CareTaskType) {
-  switch (taskType) {
-    case CareTaskType.DEXA_SCAN:
-      return flattenPathwayTests(DEXA_SCAN_PATHWAY_TESTS);
-    default:
-      return null;
-  }
-}
-
-export function getPathway(taskType: CareTaskType) {
-  switch (taskType) {
-    case CareTaskType.DEXA_SCAN:
-      return buildBlandPathway({
-        globalPrompt,
-        voicemailMessage,
-        pathway: DEXA_SCAN_PATHWAY,
-      });
-    default:
-      return null;
-  }
-}
-
-export function getPathwayID(careTaskType: CareTaskType) {
-  switch (careTaskType) {
-    case CareTaskType.DEXA_SCAN:
-      return process.env.NODE_ENV === 'development'
-        ? DEVELOPMENT_DEXA_PATHWAY_ID
-        : PRODUCTION_DEXA_PATHWAY_ID;
-    default:
-      return null;
-  }
-}
+export const PATHWAY_TEST_FOR_CARE_TASK_TYPE: Record<CareTaskType, FlattenedPathwayTest[]> = {
+  [CareTaskType.DEXA_SCAN]: flattenPathwayTests(DEXA_SCAN_PATHWAY_TESTS),
+  [CareTaskType.MAMMOGRAM]: flattenPathwayTests([]),
+};
 
 export type PathwayTest = {
   question: string;

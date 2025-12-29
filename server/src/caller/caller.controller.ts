@@ -3,7 +3,7 @@ import { CallerService, APICallResult } from './caller.service';
 import type { Request } from 'express';
 import { Public } from '#src/auth/public.decorator';
 import { LoggerNoPHI } from '#logger/logger';
-import { getErrorMessage } from '#src/utils';
+import { getErrorMessage } from '#src/util/getErrorMessage';
 
 @Controller('caller')
 export class CallerController {

@@ -3,7 +3,7 @@ import createBlandEdge, { BlandEdge } from './createBlandEdge';
 import { Node } from '../../util/Node';
 import { Pathway } from '../../util/Pathway';
 import nullThrows from 'capital-t-null-throws';
-import { createVoicemailPathway } from '../../util/createVoicemailPathway';
+import { createVoicemailSegments } from '../../util/createVoicemailSegments';
 import trimPromptWhitespace from '#src/pathway/util/trimPromptWhitespace';
 
 // Position needs to be in this non-rendered object because bland hates you in particular
@@ -19,26 +19,19 @@ type BlandGlobalConfig = {
 
 type BlandPathway = { nodes: (BlandNode | BlandGlobalConfig)[]; edges: BlandEdge[] };
 
-export default function buildBlandPathway({
-  globalPrompt,
-  voicemailMessage,
-  pathway,
-}: {
-  globalPrompt: string;
-  voicemailMessage: string;
-  pathway: Pathway;
-}): BlandPathway {
-  const pathwayWithVoicemail = createVoicemailPathway(voicemailMessage, pathway[0].node).concat(
-    pathway,
-  );
+export default function buildBlandPathway(pathway: Pathway): BlandPathway {
+  const segmentsWithVoicemail = createVoicemailSegments(
+    pathway.voicemailMessage,
+    pathway.segments[0].node,
+  ).concat(pathway.segments);
 
   // ugh this is gonna have to be ugly to find all of the id references.., ick..
-  const blandNodes: BlandNode[] = pathwayWithVoicemail.map(({ node }) => createBlandNode(node));
+  const blandNodes: BlandNode[] = segmentsWithVoicemail.map(({ node }) => createBlandNode(node));
 
   let blandEdges: BlandEdge[] = [];
 
   // we need to preserve id's here so this is a lil funky
-  for (const element of pathwayWithVoicemail) {
+  for (const element of segmentsWithVoicemail) {
     const sourceBlandNode = findMatchingBlandNode(blandNodes, element.node);
     blandEdges = blandEdges.concat(
       element.edges?.map((edge) =>
@@ -54,7 +47,7 @@ export default function buildBlandPathway({
 
   const globalConfig: BlandGlobalConfig = {
     globalConfig: {
-      globalPrompt: trimPromptWhitespace(globalPrompt),
+      globalPrompt: trimPromptWhitespace(pathway.globalPrompt),
     },
     position: {
       x: 0,

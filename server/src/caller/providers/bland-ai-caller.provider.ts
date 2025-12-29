@@ -5,10 +5,10 @@ import { buildRequestData, getCitationSchemaID } from '#caller/utils';
 import { cleanJsonString, getSummaryPrompt, getVoicemailMessage } from '#caller/utils';
 import type { Request } from 'express';
 import crypto from 'node:crypto';
-import { getErrorMessage } from '#src/utils';
+import { getErrorMessage } from '#src/util/getErrorMessage';
 import { getPatientPhoneNumber } from '#patient/utils';
 import { getBlandAIConfig } from '#src/auth/bland-ai.credentials';
-import { getPathwayID } from '#src/pathway/pathways';
+import getBlandPathwayID from '#src/pathway/providers/bland-ai/getBlandPathwayID';
 
 export interface BlandAIResponse {
   status: string;
@@ -73,7 +73,7 @@ export class BlandAICallerProvider implements CallerProvider {
   async initiateCall(request: CallInitiationRequest): Promise<CallResult> {
     const { patient, careTaskType } = request;
 
-    const pathwayID = getPathwayID(careTaskType);
+    const pathwayID = getBlandPathwayID(careTaskType);
 
     if (!pathwayID) {
       throw new Error('Pathway ID not found');
@@ -90,7 +90,7 @@ export class BlandAICallerProvider implements CallerProvider {
         body: JSON.stringify({
           phone_number: getPatientPhoneNumber(patient),
           voice: 'June',
-          pathway_id: getPathwayID(careTaskType),
+          pathway_id: pathwayID,
           voicemail: {
             message: getVoicemailMessage(patient, careTaskType),
             action: 'leave_message',

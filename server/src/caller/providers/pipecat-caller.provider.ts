@@ -3,6 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { CallerProvider, CallInitiationRequest, CallResult } from './caller-provider';
 import { getPatientPhoneNumber } from '#patient/utils';
 import { v4 } from 'uuid';
+import buildPipecatPathway from '#src/pathway/providers/pipecat/buildPipecatPathway';
+import { PATHWAY_FOR_CARE_TASK_TYPE } from '#src/pathway/pathways';
 
 const DEVELOPMENT_SIP_URL = 'sprinterhealthdev.sip.twilio.com';
 
@@ -33,7 +35,7 @@ export class PipecatCallerProvider implements CallerProvider {
       throw new Error('PIPECAT_AGENT_NAME environment variable not set');
     }
 
-    const { patient } = request;
+    const { patient, careTaskType } = request;
     const phoneNumber = getPatientPhoneNumber(patient);
     const sipURI = `sip:${phoneNumber}@${DEVELOPMENT_SIP_URL}`;
     const roomName = `pipecat-sip-${v4()}`;
@@ -84,7 +86,8 @@ export class PipecatCallerProvider implements CallerProvider {
       const createMeetingTokenResponseObject = (await createMeetingTokenResponse.json()) as {
         token: string;
       };
-
+      const pathway = buildPipecatPathway(PATHWAY_FOR_CARE_TASK_TYPE[careTaskType]);
+      console.log('pathway', JSON.stringify(pathway).length);
       // pipecat agent start
       await fetch(`${this.pipecatAPIURL}/${pipecatAgentName}/start`, {
         method: 'POST',
@@ -99,6 +102,7 @@ export class PipecatCallerProvider implements CallerProvider {
             token: createMeetingTokenResponseObject.token,
             dialout_settings: {
               sip_uri: sipURI,
+              pathway,
             },
           },
         }),
