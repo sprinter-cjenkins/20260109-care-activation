@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `CareTask` ADD COLUMN `callerProvider` ENUM('BLAND_AI', 'CARTESIA', 'ELEVEN_LABS') NOT NULL DEFAULT 'BLAND_AI';

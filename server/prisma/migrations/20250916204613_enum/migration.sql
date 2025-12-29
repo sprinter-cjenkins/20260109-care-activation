@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `CareTaskEvent` MODIFY `result` ENUM('INITIATED', 'SUCCESS', 'FAILED', 'VOICEMAIL') NOT NULL;
