@@ -55,13 +55,11 @@ export function createVoicemailSegments(message: string, userRespondedNode: Node
       node: startNode,
       edges: [
         {
-          label: 'Voicemail Detected',
-          description: voicemailDetectedPathwayDescription,
+          condition: voicemailDetectedPathwayDescription,
           target: forceInterruptNode,
         },
         {
-          label: 'User responded',
-          description:
+          condition:
             'take this pathway if you reached a live user on the line or have waited at least 2 seconds',
           target: userRespondedNode,
         },
@@ -71,7 +69,7 @@ export function createVoicemailSegments(message: string, userRespondedNode: Node
       node: forceInterruptNode,
       edges: [
         {
-          label: 'Continue',
+          condition: 'Continue',
           target: customizedVoicemailNode,
         },
       ],
@@ -80,7 +78,7 @@ export function createVoicemailSegments(message: string, userRespondedNode: Node
       node: customizedVoicemailNode,
       edges: [
         {
-          label: 'Continue',
+          condition: 'Continue',
           target: abruptEndCallNode,
         },
       ],

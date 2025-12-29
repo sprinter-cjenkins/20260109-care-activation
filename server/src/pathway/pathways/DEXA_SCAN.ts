@@ -68,20 +68,18 @@ const confirmWrongName = new SimpleRetryQuestion({
 });
 
 confirmWrongName.addGiveUp({
-  giveUpPrompt:
+  nodePrompt:
     'Apologize for not being able to connect with the correct patient, and politely hang up the call.',
-  label: 'User was not patient',
-  description: 'User was not the patient or an authorized user.',
+  condition: 'User was not the patient or an authorized user.',
 });
 
 confirmName.addFollowUp({
-  label: 'Potentially the wrong person',
-  description: `Follow this pathway if the patient has said no, they aren't "{{patient_full_name}}", or they say their name and it is something completely different than {{patient_full_name}}.`,
+  condition: `Follow this pathway if the patient has said no, they aren't "{{patient_full_name}}", or they say their name and it is something completely different than {{patient_full_name}}.`,
   followUpQuestions: [confirmWrongName],
 });
 
 // rewrite this because followup needs to be reconfigured
-nullThrows(confirmName.params.replyPaths.moveOn).description = `
+nullThrows(confirmName.params.replyPaths.moveOn).condition = `
   The patient has agreed that they are {{patient_full_name}} or otherwise confirmed in any way.
   Remember that this is the written transcript of a phone call, so names can frequently be incorrectly transcribed.
   If the patient says they are the correct person, even if the name is different, that is fine.
@@ -121,7 +119,7 @@ const confirmDOB = new SimpleRetryQuestion({
 });
 
 // only move forward if we match the date of birth correctly
-nullThrows(confirmDOB.params.replyPaths.retry).description = `
+nullThrows(confirmDOB.params.replyPaths.retry).condition = `
   The date the patient just said is a different date than "{{patient_dob}}".
   Also if the date the patient said doesn't have a day, month, and year.
   Also if the user asked a question, was confused, or otherwise didn't answer the question.
@@ -142,8 +140,7 @@ const hasHadPreviousDEXAScan = new SimpleRetryQuestion({
 });
 
 hasHadPreviousDEXAScan.addFollowUp({
-  label: 'User has had previous DEXA scan',
-  description: `
+  condition: `
     If the user says yes, they have had a DEXA scan before.
     Pick this option if it makes sense to ask follow-ups such as (when was it, where was it, etc).
   `,
@@ -244,8 +241,7 @@ const metalInBody = new SimpleRetryQuestion({
 });
 
 metalInBody.addFollowUp({
-  label: 'User does have metal in their body',
-  description: `
+  condition: `
     If the user says they do have metal in their body, if they answered affirmatively.
     For example: "Yes" "Yeah" "I Do"
     Pick this option if it makes sense to ask follow-ups such as (What metal is in your body?)
@@ -285,8 +281,7 @@ const centerNearYou = new SimpleRetryQuestion({
 });
 
 centerNearYou.addFollowUp({
-  label: 'User has a center preference',
-  description: `
+  condition: `
     If the user says yes, that they do have a prefered imaging center location.
     Also if they name a specific center or allude to the fact that they know a center nearby.
     For example: "Yes" "Yeah" "I Do" "I know there's one down the street"
@@ -301,7 +296,7 @@ centerNearYou.addFollowUp({
 });
 
 // add some guidance to move on questions like "Can you do it?"
-nullThrows(centerNearYou.params.replyPaths.moveOn).description += `
+nullThrows(centerNearYou.params.replyPaths.moveOn).condition += `
   The patient asks you for an opinion on what center to pick or asks a question about centers nearby.
   Examples: "Where is the nearest center?" "Can you find one for me?"
 `;
@@ -335,7 +330,7 @@ const schedulingPreference = new SimpleRetryQuestion({
 });
 
 // only continue when we have a window
-nullThrows(schedulingPreference.params.replyPaths.moveOn).description = `
+nullThrows(schedulingPreference.params.replyPaths.moveOn).condition = `
   Take this pathway when we get windows like "Tuesdays" instead of single options like "tomorrow" or "next Tuesday". We want the availability to apply to at least a few windows.
   These are great examples of answers: "Saturdays and Sundays", "Monday and Wednesday afternoon", "Monday mornings", and "Thursday evenings".
   These are insufficient answers because there aren't enough options: "Tomorrow", "How about this Saturday at 9?".

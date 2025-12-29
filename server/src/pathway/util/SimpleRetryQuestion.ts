@@ -35,8 +35,7 @@ export default class SimpleRetryQuestion extends Question {
       `,
       replyPaths: {
         moveOn: {
-          label: 'Success',
-          description:
+          condition:
             moveOnCondition ??
             `
             User answered the question. The answer could be anything that is not a follow up question, obviously off topic, or being confused about the question being asked.
@@ -52,10 +51,8 @@ export default class SimpleRetryQuestion extends Question {
             ${allowIDontKnow ? iDontKnowExamples : ''}`,
         },
         retry: {
-          label: 'User did not answer the question',
-          description:
+          condition:
             "The user did not answer the question. User asked their own question, was confused, or otherwise didn't answer the question.",
-          retries: 4,
         },
       },
       tests,

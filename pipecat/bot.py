@@ -35,7 +35,7 @@ load_dotenv(override=True)
 
 class Edge(BaseModel):
     target_id: str
-    prompt: str
+    condition: str
 
 class Node(BaseModel):
     id: str
