@@ -32,11 +32,13 @@
   "dependencies": {
     "@ca/prisma": "file:../prisma",
     "@elevenlabs/elevenlabs-js": "^2.16.0",
+    "@google/genai": "^1.34.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/terminus": "^11.0.0",
     "@prisma/adapter-mariadb": "^7.1.0",
+    "axios": "^1.13.2",
     "capital-t-null-throws": "^2.0.0",
     "dd-trace": "^5.67.0",
     "dotenv": "^17.2.3",

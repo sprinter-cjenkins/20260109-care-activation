@@ -37,16 +37,9 @@ const confirmName = new SimpleRetryQuestion({
   `,
   allowIDontKnow: false,
   tests: {
-    moveOn: [
-      'Yes, this is her.',
-      'Yeah. This is she.',
-      'Speaking',
-      'Confirmed.',
-      'This is Jahan',
-      'You do have the correct person',
-    ],
-    retry: ['Who are you?', 'Why?'],
-    followUp: ['No, this is Patrick.'],
+    moveOn: ['You are Jiahan Ericsson, you agree.'],
+    retry: ["You have no idea who this is or why they're calling."],
+    followUp: ['You have no idea who Jiahan Ericsson is and you think this is a wrong number.'],
   },
 });
 
@@ -58,12 +51,8 @@ const confirmWrongName = new SimpleRetryQuestion({
   `,
   allowIDontKnow: false,
   tests: {
-    moveOn: [
-      'No you have the correct person.',
-      'This is Jiahan speaking',
-      'Yes I can speak on behalf of Jiahan',
-    ],
-    giveUp: ['Yeah no this is Jim', 'You have the wrong number', 'Yes'],
+    moveOn: ['There was a misunderstanding but you are Jiahan Ericsson and you want to confirm.'],
+    giveUp: ['You are not the right person, this is probably a wrong number.'],
   },
 });
 
@@ -102,18 +91,13 @@ const confirmDOB = new SimpleRetryQuestion({
   `,
   tests: {
     moveOn: [
-      'Zero one zero one nineteen ninety nine.',
-      'One one ninety nine.',
-      'January first ninety nine.',
-      'January one nineteen ninety nine.',
-      'Jan one nineteen ninety nine.',
-      'The first of January nineteen ninety nine',
+      'Your birthday is 01/01/1999 and you want to say it as consise as possible',
+      'Your birthday is 01/01/1999 and you want to say it as clearly as possible',
     ],
     retry: [
-      'January first',
-      'Why?',
-      'February tenth nineteen ninety nine',
-      'January first nineteen seventy',
+      'Your birthday is 03/04/1999',
+      "Your birthday is 01/01/1999 but you don't want to give all of that information in a single message",
+      'Why are they asking something like that to you?',
     ],
   },
 });
@@ -133,9 +117,9 @@ const hasHadPreviousDEXAScan = new SimpleRetryQuestion({
     "Have you ever had a bone density scan, sometimes called a 'DEXA' scan, before?"
   `,
   tests: {
-    moveOn: ['No.', "No, I haven't had a DEXA Scan before"],
-    retry: ["What's a DEXA scan?", 'Why do you need to know that'],
-    followUp: ['Yes I have', 'Yes, I had one a few years ago'],
+    moveOn: ["You haven't had a DEXA scan before"],
+    retry: ["You are confused what a DEXA scan is and why they're asking"],
+    followUp: ['You had a DEXA scan two years ago.'],
   },
 });
 
@@ -163,8 +147,11 @@ const fractures = new SimpleRetryQuestion({
     "Have you had any fractures within the past 6 months?"
   `,
   tests: {
-    moveOn: ['Yeah', 'Nope', "I don't remember", "I don't want to tell you that"],
-    retry: ['Why are you asking me this?'],
+    moveOn: [
+      "You haven't had any fractures.",
+      'You broke your arm five months ago but you are okay.',
+    ],
+    retry: ['You are confused why they are asking you this'],
   },
 });
 
@@ -181,12 +168,14 @@ const height = new SimpleRetryQuestion({
   Meters and centimeters are also fine, convert them to feet when thinking about them.
 `,
   tests: {
-    moveOn: ['Five foot something', 'Five ten', 'Around five feet'],
+    moveOn: [
+      "You know that you're around five feet tall but don't know more than that.",
+      'You know your exactly five foot three inches.',
+    ],
     retry: [
-      "I don't know",
-      "I don't want to tell you that",
-      'Why do you need to know?',
-      'Pretty tall.',
+      "You haven't checked your height in so long, you have no idea",
+      "You don't want to give this person your height, that's private",
+      "You're confused why they're asking you this.",
     ],
   },
 });
@@ -204,12 +193,14 @@ const weight = new SimpleRetryQuestion({
   Kilograms are also fine, convert them to feet when thinking about them.
 `,
   tests: {
-    moveOn: ['One fifty', 'Fourty kilos', 'One hundred something', 'a hundred and forty seven.'],
+    moveOn: [
+      "You know you're around two hundred pounds but you don't know any more specific than that",
+      'You know you are exactly one hundred and twenty three pounds',
+    ],
     retry: [
-      "I don't know",
-      "I don't want to tell you that",
-      'Why do you need to know?',
-      "It's fine don't worry about it.",
+      "You haven't checked your weight in so long, you have no idea",
+      "You don't want to give this person your weight, that's private",
+      "You're confused why they're asking you this.",
     ],
   },
 });
@@ -222,8 +213,13 @@ const mobilityAssistance = new SimpleRetryQuestion({
     "Do you use a walker, wheelchair, crutches, or cane?"
   `,
   tests: {
-    moveOn: ['Yeah', 'Nope', "Sometimes, but I don't need to", 'A walker'],
-    retry: ['Why?', 'Why are you asking me this?', "I don't want to tell you that"],
+    moveOn: [
+      'You use a walker sometimes but only when your tired',
+      'You use a cane',
+      "You don't use any of these",
+      "You don't use any of these and are sort of annoyed they assumed you did",
+    ],
+    retry: ['You are confused why they are asking you this'],
   },
 });
 
@@ -234,9 +230,9 @@ const metalInBody = new SimpleRetryQuestion({
     "Do you have any metal in your body?"
   `,
   tests: {
-    moveOn: ['Nope', "I don't remember", "I don't want to tell you that"],
-    retry: ['Why are you asking me this?'],
-    followUp: ['I do have metal in my body', 'Yeah'],
+    moveOn: ['You have no metal in your body', 'You have no idea if you have metal in your body'],
+    retry: ['You are confused why they are asking you this'],
+    followUp: ['You have a knee replacement.'],
   },
 });
 
@@ -270,13 +266,12 @@ const centerNearYou = new SimpleRetryQuestion({
   Examples: "Yes" "No" "I don't know"
   `,
   tests: {
-    moveOn: ['Can you find one for me?', 'No.', "I don't know", 'Where are the centers near me?'],
-    retry: ['Why are you asking me this?'],
-    followUp: [
-      'Yes',
-      'Sunset Imaging is right down the street from me',
-      "There's one I like down the street but I don't remember the name",
+    moveOn: [
+      "You don't know any imaging centers and want them to find one for you",
+      'You have no preference',
     ],
+    retry: ["You have no idea why they're asking you this"],
+    followUp: ["You know Sunset Imaging is down the street and it's where you always go"],
   },
 });
 
@@ -314,17 +309,12 @@ const schedulingPreference = new SimpleRetryQuestion({
   `,
   tests: {
     moveOn: [
-      "I don't know",
-      "I don't know my schedule can I tell you later?",
-      "Monday's are perfect for me",
-      'Monday through Friday in the morning.',
-      'Tuesday afternoons',
-      'Mornings',
+      "You don't know your schedule but you can call back later with it.",
+      'Some specific week day in the morning or afternoon works for you.',
     ],
     retry: [
-      'Why are you asking me this?',
-      'Tomorrow works.',
-      'Next Wednesday in the morning is perfect',
+      'You only know one specific day and time that works but not a range.',
+      "You don't understand why they're asking you this",
     ],
   },
 });
