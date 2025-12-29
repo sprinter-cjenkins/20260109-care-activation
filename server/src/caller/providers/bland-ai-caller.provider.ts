@@ -98,6 +98,8 @@ export class BlandAICallerProvider implements CallerProvider {
           },
           request_data: buildRequestData(patient),
           summary_prompt: getSummaryPrompt(patient),
+          record: true,
+          noise_cancellation: true,
           citation_schema_ids: [getCitationSchemaID(careTaskType)],
           ...(process.env.NODE_ENV !== 'development' && {
             webhook: process.env.BLAND_AI_WEBHOOK_URL,
