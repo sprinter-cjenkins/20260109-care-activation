@@ -12,7 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
-    "local": "docker-compose up mysql -d && nest start --watch",
+    "local": "cd .. && docker-compose up mysql -d && cd ./server && nest start --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -24,6 +24,7 @@
     "docker:compose": "nest build && cd .. && docker-compose up --build",
     "docker:compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
     "mfa": "zsh ../scripts/aws-mfa.sh",
+    "prisma-studio": "cd ../prisma && npx prisma studio",
     "push-pathway": "ts-node -r tsconfig-paths/register scripts/push-pathway.ts",
     "test-pathway": "ts-node -r tsconfig-paths/register scripts/test-pathway.ts",
     "push-pipecat": "cd ../pipecat && yes | pipecat cloud docker build-push && yes | yes | pipecat cloud deploy"
