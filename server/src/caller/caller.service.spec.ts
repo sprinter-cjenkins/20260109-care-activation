@@ -6,9 +6,9 @@ import { buildRequestData, getSummaryPrompt, getVoicemailMessage } from './utils
 import { getPatientPhoneNumber } from '#patient/utils';
 import { mockPatientPayload, mockCareTaskPayload } from '../../test/mocks';
 import { CareTaskPayload } from '#care-task/care-task.service';
-import { getPathwayID } from '#src/pathway/pathways';
 import { CallerProviderRegistry } from '#caller/providers/caller-provider.registry';
 import { Request } from 'express';
+import getBlandPathwayID from '#src/pathway/providers/bland-ai/getBlandPathwayID';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -104,7 +104,7 @@ describe('CallerService', () => {
       expect(JSON.parse(call.body as string) as Record<string, unknown>).toMatchObject({
         phone_number: getPatientPhoneNumber(mockPatientPayload),
         voice: 'June',
-        pathway_id: getPathwayID(mockCareTaskPayload.type),
+        pathway_id: getBlandPathwayID(mockCareTaskPayload.type),
         from: process.env.BLAND_AI_FROM_NUMBER,
         request_data: buildRequestData(mockPatientPayload),
         summary_prompt: getSummaryPrompt(mockPatientPayload),

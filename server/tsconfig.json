@@ -27,7 +27,8 @@
       "#logger/*": ["src/logger/*"],
       "#patient/*": ["src/patient/*"],
       "#prisma/*": ["src/prisma/*"],
-      "#src/*": ["src/*"]
+      "#src/*": ["src/*"],
+      "#util/*": ["src/util/*"]
     }
   }
 }

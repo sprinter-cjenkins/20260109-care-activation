@@ -1,7 +1,7 @@
 import { Node } from './Node';
-import { Pathway } from './Pathway';
+import { Segment } from './Pathway';
 import { v4 } from 'uuid';
-import questionListToPathway from './questionListToPathway';
+import questionListToSegments from './questionListToSegments';
 import { PathwayTest } from '../pathways';
 
 export type ReplyPaths = {
@@ -71,7 +71,7 @@ export default class Question {
     this.params.replyPaths.giveUp = giveUp;
   }
 
-  toPathway(moveOnNode: Node) {
+  toSegments(moveOnNode: Node): Segment[] {
     const { giveUp, followUp, retry } = this.params.replyPaths;
 
     const giveUpNode: Node = {
@@ -81,15 +81,15 @@ export default class Question {
       type: 'End Call',
     };
 
-    const followUpPathway =
-      followUp != null ? questionListToPathway(followUp.followUpQuestions, moveOnNode) : [];
+    const followUpSegments =
+      followUp != null ? questionListToSegments(followUp.followUpQuestions, moveOnNode) : [];
 
-    const retryPathway =
+    const retrySegments =
       retry != null
-        ? this.createRetryPathway({
+        ? this.createRetrySegments({
             moveOnNode,
             giveUpNode,
-            followUpNode: followUpPathway[0]?.node,
+            followUpNode: followUpSegments[0]?.node,
           })
         : [];
 
@@ -99,12 +99,12 @@ export default class Question {
         edges: this.createNodeEdges({
           moveOnNode,
           giveUpNode,
-          followUpNode: followUpPathway[0]?.node,
-          retryNode: retryPathway[0]?.node,
+          followUpNode: followUpSegments[0]?.node,
+          retryNode: retrySegments[0]?.node,
         }),
       },
-      ...retryPathway,
-      ...followUpPathway,
+      ...retrySegments,
+      ...followUpSegments,
       ...(giveUp != null
         ? [
             {
@@ -168,7 +168,7 @@ export default class Question {
     ];
   }
 
-  createRetryPathway({
+  createRetrySegments({
     followUpNode,
     giveUpNode,
     moveOnNode,
@@ -176,7 +176,7 @@ export default class Question {
     followUpNode?: Node;
     giveUpNode?: Node;
     moveOnNode?: Node;
-  }) {
+  }): Segment[] {
     const retryNodes: Node[] = new Array(this.params.replyPaths.retry?.retries ?? 0)
       .fill(null)
       .map((_, i) => ({
@@ -205,21 +205,21 @@ export default class Question {
         `,
     };
 
-    const resultPathway: Pathway = [];
+    const resultSegments: Segment[] = [];
     for (let i = 0; i < retryNodes.length; i++) {
       let nextRetry = retryNodes[i + 1];
       if (nextRetry == null) {
         nextRetry = tooConfusedNode;
       }
-      resultPathway.push({
+      resultSegments.push({
         node: retryNodes[i],
         edges: this.createNodeEdges({ moveOnNode, followUpNode, giveUpNode, retryNode: nextRetry }),
       });
     }
 
-    resultPathway.push({ node: tooConfusedNode });
+    resultSegments.push({ node: tooConfusedNode });
 
-    return resultPathway;
+    return resultSegments;
   }
 
   toPathwayTests(moveOnNode: Node): PathwayTest[] {

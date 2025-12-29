@@ -1,7 +1,7 @@
 import { Node } from './Node';
-import { Pathway } from './Pathway';
+import { Segment } from './Pathway';
 
-export function createVoicemailPathway(message: string, userRespondedNode: Node): Pathway {
+export function createVoicemailSegments(message: string, userRespondedNode: Node): Segment[] {
   const voicemailDetectedPathwayDescription = `
     Take this path only if you reach a voicemail system where you are prompted to leave a recorded message after a beep or tone. you will know if you have reached a voicemail box if you see messages like: "Please leave a message after the tone", "Start your message now", "Record your message after the beep", "leave a message", "not available", "can't come to the phone", "away from the phone", at the tone", "leave your name and number", "we'll get back to you as soon as possible", "I'm sorry I missed your call", "Two six two... is not available", "you have reached seven six three four five four, three seven eight two", etc
   `;

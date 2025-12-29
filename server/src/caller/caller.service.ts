@@ -9,7 +9,7 @@ import { PrismaService } from '#prisma/prisma.service';
 import { CallResult } from './providers/caller-provider';
 import type { Request } from 'express';
 import { LoggerNoPHI } from '#logger/logger';
-import { getErrorMessage } from '#src/utils';
+import { getErrorMessage } from '#src/util/getErrorMessage';
 import { incrementMetric } from '#logger/metrics';
 import { CallerProviderRegistry } from './providers/caller-provider.registry';
 

@@ -3,10 +3,10 @@ import createSimpleRetryQuestions from '../util/createSimpleRetryQuestions';
 import { DefaultEndNode } from '../util/Node';
 import { Pathway } from '../util/Pathway';
 import Question from '../util/Question';
-import questionListToPathway from '../util/questionListToPathway';
 import SimpleRetryQuestion from '../util/SimpleRetryQuestion';
 import { PathwayTest } from '.';
 import questionListToPathwayTests from '../util/questionListToPathwayTests';
+import questionListToSegments from '../util/questionListToSegments';
 
 export const globalPrompt = `
 # Background
@@ -356,10 +356,11 @@ const DEXA_SCAN_QUESTION_LIST: Question[] = [
   schedulingPreference,
 ];
 
-export const DEXA_SCAN_PATHWAY: Pathway = questionListToPathway(
-  DEXA_SCAN_QUESTION_LIST,
-  DefaultEndNode,
-);
+export const DEXA_SCAN_PATHWAY: Pathway = {
+  globalPrompt,
+  voicemailMessage,
+  segments: questionListToSegments(DEXA_SCAN_QUESTION_LIST, DefaultEndNode),
+};
 
 export const DEXA_SCAN_PATHWAY_TESTS: PathwayTest[] = questionListToPathwayTests(
   DEXA_SCAN_QUESTION_LIST,
