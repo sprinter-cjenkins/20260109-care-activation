@@ -9,6 +9,9 @@ on:
         type: choice
         options:
           - dev
+  push:
+    branches:
+      - dev
 
 concurrency:
   group: pr-tf-plan-${{ github.head_ref }}
