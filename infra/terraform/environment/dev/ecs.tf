@@ -345,11 +345,11 @@ module "care-activation-dev" {
             }
           ]
           mountPoints = [
-            {
-              sourceVolume  = "dd-sockets"
-              containerPath = "/var/run/datadog"
-              readOnly      = false
-            }
+            # {
+            #   sourceVolume  = "dd-sockets"
+            #   containerPath = "/var/run/datadog"
+            #   readOnly      = false
+            # }
           ]
 
           logConfiguration = {
