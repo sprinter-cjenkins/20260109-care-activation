@@ -77,7 +77,7 @@ jobs:
 
       - name: Update AWS ECS Service Container
         id: update-aws-ecs-service-container
-        uses: ./.github/actions/terraform-aws-apply.yaml
+        uses: ./.github/actions/terraform-aws-apply/action.yaml
         with:
           aws-env: "dev"
 
