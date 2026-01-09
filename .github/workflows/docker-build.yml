@@ -78,7 +78,7 @@ jobs:
       - name: Update AWS ECS Service Container
         id: update-aws-ecs-service-container
         #run: ls -halt ./.github/actions/terraform-auto-apply/action.yaml
-        uses: ./.github/actions/terraform-auto-apply/action.yaml
+        uses: ./.github/actions/terraform-auto-apply
 
 #      - name: Save Docker image metadata to file
 #        run: |
