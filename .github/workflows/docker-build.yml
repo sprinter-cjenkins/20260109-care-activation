@@ -43,37 +43,37 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set Image Tags
-        run: |
-          export REPO_URI=${{ steps.login-ecr.outputs.registry }}/care-activation
-          export COMMIT_TAG=sha-${GITHUB_SHA::8}
-          export LATEST_TAG=latest
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            export VERSION_TAG=${GITHUB_REF#refs/tags/}
-          fi
-          echo "REPO_URI=$REPO_URI" >> $GITHUB_ENV
-          echo "COMMIT_TAG=$COMMIT_TAG" >> $GITHUB_ENV
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
-
-      - name: Build Docker Image (with cache)
-        run: |
-          docker build \
-            --tag $REPO_URI:$COMMIT_TAG \
-            --build-arg DD_GIT_REPOSITORY_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} \
-            --build-arg DD_GIT_COMMIT_SHA=${GITHUB_SHA} \
-            --cache-from $REPO_URI:latest \
-            .
-
-      - name: Push Docker Image
-        run: |
-          docker push $REPO_URI:$COMMIT_TAG
-          docker tag $REPO_URI:$COMMIT_TAG $REPO_URI:$LATEST_TAG
-          docker push $REPO_URI:$LATEST_TAG
-          if [ ! -z "$VERSION_TAG" ]; then
-            docker tag $REPO_URI:$COMMIT_TAG $REPO_URI:$VERSION_TAG
-            docker push $REPO_URI:$VERSION_TAG
-          fi
+#      - name: Set Image Tags
+#        run: |
+#          export REPO_URI=${{ steps.login-ecr.outputs.registry }}/care-activation
+#          export COMMIT_TAG=sha-${GITHUB_SHA::8}
+#          export LATEST_TAG=latest
+#          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+#            export VERSION_TAG=${GITHUB_REF#refs/tags/}
+#          fi
+#          echo "REPO_URI=$REPO_URI" >> $GITHUB_ENV
+#          echo "COMMIT_TAG=$COMMIT_TAG" >> $GITHUB_ENV
+#          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+#          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
+#
+#      - name: Build Docker Image (with cache)
+#        run: |
+#          docker build \
+#            --tag $REPO_URI:$COMMIT_TAG \
+#            --build-arg DD_GIT_REPOSITORY_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} \
+#            --build-arg DD_GIT_COMMIT_SHA=${GITHUB_SHA} \
+#            --cache-from $REPO_URI:latest \
+#            .
+#
+#      - name: Push Docker Image
+#        run: |
+#          docker push $REPO_URI:$COMMIT_TAG
+#          docker tag $REPO_URI:$COMMIT_TAG $REPO_URI:$LATEST_TAG
+#          docker push $REPO_URI:$LATEST_TAG
+#          if [ ! -z "$VERSION_TAG" ]; then
+#            docker tag $REPO_URI:$COMMIT_TAG $REPO_URI:$VERSION_TAG
+#            docker push $REPO_URI:$VERSION_TAG
+#          fi
 
       - name: Update AWS ECS Service Container
         id: update-aws-ecs-service-container
