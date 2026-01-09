@@ -1,0 +1,74 @@
+name: Terraform Auto Apply Infra
+description: Run Terraform init + apply using AWS OIDC
+
+inputs:
+  aws-env:
+    description: "Deployable AWS environment name (dev, prod)"
+    required: true
+    default: dev
+
+  working-directory:
+    description: "Base Terraform working directory"
+    required: false
+    default: infra/terraform/environment
+
+  terraform-version:
+    description: "Terraform version"
+    required: false
+    default: "1.11.4"
+
+  aws-region:
+    description: "AWS region"
+    required: false
+    default: us-west-2
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: >-
+          ${{
+            inputs.aws-env == 'prod' &&
+            'arn:aws:iam::417107812602:role/care-activation-prod-terraform-rw-role' ||
+            'arn:aws:iam::417107812602:role/care-activation-dev-terraform-rw-role'
+          }}
+        role-session-name: ${{ github.repository_id }}-${{ github.actor }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Create AWS CLI profile
+      shell: bash
+      run: |
+        mkdir -p ~/.aws
+        cat <<EOF > ~/.aws/credentials
+        [${{ inputs.aws-env }}]
+        aws_access_key_id=${AWS_ACCESS_KEY_ID}
+        aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
+        aws_session_token=${AWS_SESSION_TOKEN}
+        EOF
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+
+    - name: Terraform Init & Workspace
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}/${{ inputs.aws-env }}
+      env:
+        TF_IN_AUTOMATION: 1
+      run: |
+        terraform init -input=false
+        terraform workspace select ${{ inputs.aws-env }}
+
+    - name: Terraform Apply
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}/${{ inputs.aws-env }}
+      env:
+        TF_IN_AUTOMATION: 1
+      run: |
+        terraform apply --auto-approve --var-file=${{ inputs.aws-env }}.tfvars

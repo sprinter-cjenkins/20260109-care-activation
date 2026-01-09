@@ -75,6 +75,13 @@ jobs:
             docker push $REPO_URI:$VERSION_TAG
           fi
 
+      - name: Update AWS ECS Service Container
+        id: update-aws-ecs-service-container
+        uses: ./.github/actions/terraform-aws-apply.yaml
+        with:
+          aws-env: "dev"
+
+
 #      - name: Save Docker image metadata to file
 #        run: |
 #          mkdir -p ../artifacts
