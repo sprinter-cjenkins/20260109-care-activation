@@ -7,6 +7,11 @@ inputs:
     required: true
     default: dev
 
+  deploy-ecr-image:
+    description: "Deploy new ECR Image to CA ECS Service (true, false)"
+    required: false
+    default: "true"
+
   working-directory:
     description: "Base Terraform working directory"
     required: false
@@ -71,4 +76,8 @@ runs:
       env:
         TF_IN_AUTOMATION: 1
       run: |
-        terraform apply --auto-approve --var-file=${{ inputs.aws-env }}.tfvars
+        ${{
+            inputs.deploy-ecr-image == 'true' &&
+            terraform apply --auto-approve --var-file=${{ inputs.aws-env }}.tfvars -target=module.care-activation-dev.aws_ecs_service.this ||
+            terraform apply --auto-approve --var-file=${{ inputs.aws-env }}.tfvars
+          }}
