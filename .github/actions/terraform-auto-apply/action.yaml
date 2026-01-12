@@ -70,14 +70,25 @@ runs:
         terraform init -input=false
         terraform workspace select ${{ inputs.aws-env }}
 
-    - name: Terraform Apply
+    - name: Terraform Apply (ECR image deploy)
+      if: ${{ inputs.deploy-ecr-image == 'true' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}/${{ inputs.aws-env }}
       env:
         TF_IN_AUTOMATION: 1
       run: |
-        ${{
-            inputs.deploy-ecr-image == 'true' &&
-            terraform apply --auto-approve --var-file=${{ inputs.aws-env }}.tfvars -target=module.care-activation-dev.aws_ecs_service.this ||
-            terraform apply --auto-approve --var-file=${{ inputs.aws-env }}.tfvars
-          }}
+        terraform apply \
+          --auto-approve \
+          --var-file=${{ inputs.aws-env }}.tfvars \
+          -target=module.care-activation-dev.aws_ecs_service.this
+
+    - name: Terraform Apply (Full apply)
+      if: ${{ inputs.deploy-ecr-image != 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}/${{ inputs.aws-env }}
+      env:
+        TF_IN_AUTOMATION: 1
+      run: |
+        terraform apply \
+          --auto-approve \
+          --var-file=${{ inputs.aws-env }}.tfvars
